@@ -1,0 +1,14 @@
+📌 Akun Admin / Guru / Proktor
+Role	Username	Password
+Admin	admin	smkba2024
+Guru IPA A	bu.ipa.a	smkba2024
+Guru IPA B	bu.ipa.b	smkba2024
+Proktor	pak.proktor	smkba2024
+📌 Akun Siswa — Password semua: siswa2024
+NIS	Nama	Kelas	Ruangan	Ujian dari
+1001, 1002	Agus, Budi	X TO1	Ruang 1	Bu Sari
+1003, 1004	Citra, Dani	X TO1	Ruang 2	Bu Sari
+2001, 2002	Eko, Fitri	X TO2	Ruang 2	Bu Sari
+2003, 2004	Gita, Hadi	X TO2	Ruang 3	Bu Sari
+3001, 3002	Indra, Joko	X TJKT2	Ruang 3	Bu Dewi
+3003, 3004	Kartika, Lukman	X TJKT2	Ruang 4	Bu Dewi

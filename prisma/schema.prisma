@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Jurusan {
+  id    Int     @id @default(autoincrement())
+  kode  String  @unique // TO, TJKT, TAV
+  nama  String
+  kelas Kelas[] // Relasi Many-to-Many ke Kelas
+}
+
+model Tingkat {
+  id    Int     @id @default(autoincrement())
+  level String  @unique // X, XI, XII
+  kelas Kelas[] // Relasi One-to-Many ke Kelas
+}
+
+model Kelas {
+  id        Int       @id @default(autoincrement())
+  nama      String    @unique // e.g., "X TO2/TJKT1"
+  tingkatId Int
+  tingkat   Tingkat       @relation(fields: [tingkatId], references: [id])
+  jurusans  Jurusan[]     // Relasi Many-to-Many ke Jurusan
+  siswas    Siswa[]       // Relasi One-to-Many ke Siswa
+  jadwals   JadwalUjian[] // Relasi Many-to-Many ke JadwalUjian
+}
+
+model Ruangan {
+  id        Int           @id @default(autoincrement())
+  nama      String        @unique // Ruang 1, Ruang 2...
+  kapasitas Int           @default(40)
+  token     String?       @unique // Token di-generate oleh Proktor
+  siswas    Siswa[]       // Siswa yang menetap/sedang ujian di ruangan ini
+}
+
+enum Role {
+  ADMIN
+  GURU
+  PROCTOR
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  username   String       @unique
+  password   String
+  nama       String
+  role       Role         @default(GURU)
+  bankSoals  BankSoal[]   // Bank Soal yang dibuat guru
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Siswa {
+  id        Int              @id @default(autoincrement())
+  nis       String           @unique
+  nama      String
+  password  String
+  kelasId   Int
+  kelas     Kelas            @relation(fields: [kelasId], references: [id])
+  ruanganId Int?
+  ruangan   Ruangan?         @relation(fields: [ruanganId], references: [id])
+  sesiUjian SesiUjianSiswa[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model MataPelajaran {
+  id        Int        @id @default(autoincrement())
+  nama      String     @unique // e.g. Matematika, Bahasa Inggris
+  bankSoals BankSoal[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model BankSoal {
+  id        Int           @id @default(autoincrement())
+  judul     String
+  mapelId   Int
+  mapel     MataPelajaran @relation(fields: [mapelId], references: [id])
+  guruId    Int
+  guru      User          @relation(fields: [guruId], references: [id])
+  soals     Soal[]
+  jadwals   JadwalUjian[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Soal {
+  id           Int      @id @default(autoincrement())
+  bankSoalId   Int
+  bankSoal     BankSoal @relation(fields: [bankSoalId], references: [id], onDelete: Cascade)
+  pertanyaan   String
+  opsi         String   // JSON stringified array of options: '["A", "B"]'
+  kunciJawaban String   // The exact correct option string
+  bobot        Int      @default(1)
+  jawabans     JawabanSiswa[]
+}
+
+model JadwalUjian {
+  id           Int      @id @default(autoincrement())
+  nama         String
+  bankSoalId   Int
+  bankSoal     BankSoal @relation(fields: [bankSoalId], references: [id])
+  waktuMulai   DateTime
+  waktuSelesai DateTime
+  kelas        Kelas[]  // Kelas yang diizinkan mengikuti jadwal ini
+  sesiSiswa    SesiUjianSiswa[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum StatusUjian {
+  ONGOING
+  FINISHED
+}
+
+model SesiUjianSiswa {
+  id           Int           @id @default(autoincrement())
+  siswaId      Int
+  siswa        Siswa         @relation(fields: [siswaId], references: [id])
+  jadwalId     Int
+  jadwal       JadwalUjian   @relation(fields: [jadwalId], references: [id])
+  status       StatusUjian   @default(ONGOING)
+  pelanggaran  Int           @default(0) // Peringatan kecurangan (maks 3)
+  waktuMulai   DateTime      @default(now())
+  waktuSelesai DateTime?
+  nilaiAkhir   Float?
+  jawabans     JawabanSiswa[]
+
+  @@unique([siswaId, jadwalId])
+}
+
+model JawabanSiswa {
+  id           Int             @id @default(autoincrement())
+  sesiId       Int
+  sesi         SesiUjianSiswa  @relation(fields: [sesiId], references: [id], onDelete: Cascade)
+  soalId       Int
+  soal         Soal            @relation(fields: [soalId], references: [id])
+  opsiDipilih  String?         // Kosong jika belum dijawab
+  isBenar      Boolean         @default(false)
+
+  @@unique([sesiId, soalId])
+}
+
+model Pengaturan {
+  id           Int      @id @default(1)
+  namaSekolah  String   @default("Nama Sekolah")
+  namaSistem   String   @default("PintarCBT")
+  logoUrl      String?
+  alamat       String?
+  pengumuman   String?
+  temaWarna    String   @default("blue")
+  updatedAt    DateTime @updatedAt
+}

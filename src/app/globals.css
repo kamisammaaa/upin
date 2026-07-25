@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+@theme {
+  --color-crypto-bg: #09090b;
+  --color-crypto-card: rgba(255, 255, 255, 0.03);
+  --color-crypto-card-hover: rgba(255, 255, 255, 0.05);
+  --color-crypto-border: rgba(255, 255, 255, 0.1);
+  --color-crypto-accent: #7000FF;
+  --color-crypto-accent-hover: #8C2CFF;
+  --color-crypto-success: #10B981;
+  --color-crypto-success-hover: #059669;
+  
+  --font-sans: "Inter", var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #09090b;
+  --foreground: #f4f4f5;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Custom Utilities for Neon Glow */
+@utility neon-accent {
+  box-shadow: 0 0 15px rgba(112, 0, 255, 0.3);
+}
+
+@utility neon-accent-strong {
+  box-shadow: 0 0 25px rgba(112, 0, 255, 0.6);
+}
+
+@utility neon-success {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b; 
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a; 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46; 
 }
