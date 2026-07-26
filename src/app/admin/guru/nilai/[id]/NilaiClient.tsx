@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAnalisisSoalData } from '@/app/actions/monitor';
-import { Users, CheckCircle2, Clock, AlertTriangle, Printer, ArrowLeft, Download, BarChart2, List } from 'lucide-react';
+import { Users, CheckCircle2, AlertTriangle, Printer, ArrowLeft, Download, BarChart2, List } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 
@@ -37,8 +37,11 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
   const { jadwal, peserta } = data;
 
   const totalSiswa = peserta.length;
-  const selesai = peserta.filter((p: Peserta) => p.status === 'SELESAI' || p.status === 'FINISHED').length;
-  const sedangMengerjakan = peserta.filter((p: Peserta) => p.status === 'MENGERJAKAN' || p.status === 'ONGOING').length;
+  const sudahAdaNilai = peserta.filter((p: Peserta) => p.nilaiAkhir !== null && p.nilaiAkhir !== undefined);
+  const totalSelesai = sudahAdaNilai.length;
+  const rataRataNilai = totalSelesai > 0
+    ? (sudahAdaNilai.reduce((sum: number, p: Peserta) => sum + (p.nilaiAkhir || 0), 0) / totalSelesai).toFixed(1)
+    : '-';
 
   const handlePrint = () => {
     window.print();
@@ -50,13 +53,11 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
       'NIS': p.nis,
       'Nama': p.nama,
       'Kelas': p.kelas,
-      'Status': p.status,
-      'Pelanggaran (Kali)': p.pelanggaran,
-      'Nilai Akhir': p.nilaiAkhir !== null ? p.nilaiAkhir : 'Belum Selesai'
+      'Nilai Akhir': p.nilaiAkhir !== null && p.nilaiAkhir !== undefined ? Math.round(p.nilaiAkhir) : 'Belum Ada Nilai'
     })));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rekap Nilai");
-    XLSX.writeFile(wb, `Rekap_Nilai_${jadwal.nama}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Hasil Ujian");
+    XLSX.writeFile(wb, `Hasil_Ujian_${jadwal.nama}.xlsx`);
   };
 
   return (
@@ -109,7 +110,7 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
         </div>
       </div>
 
-      {/* Kartu Statistik */}
+      {/* Kartu Statistik Hasil Ujian */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
         <div className="bg-crypto-card p-5 rounded-xl border border-crypto-border shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-gray-500/10 text-gray-400 rounded-full border border-gray-500/20 flex items-center justify-center">
@@ -122,22 +123,22 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
         </div>
         
         <div className="bg-crypto-card p-5 rounded-xl border border-crypto-border shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 flex items-center justify-center">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-400 font-medium">Sedang Mengerjakan</p>
-            <p className="text-2xl font-bold text-blue-400">{sedangMengerjakan}</p>
-          </div>
-        </div>
-        
-        <div className="bg-crypto-card p-5 rounded-xl border border-crypto-border shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-crypto-success/10 text-crypto-success rounded-full border border-crypto-success/20 flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-400 font-medium">Selesai</p>
-            <p className="text-2xl font-bold text-crypto-success">{selesai}</p>
+            <p className="text-sm text-gray-400 font-medium">Sudah Mengerjakan</p>
+            <p className="text-2xl font-bold text-crypto-success">{totalSelesai}</p>
+          </div>
+        </div>
+        
+        <div className="bg-crypto-card p-5 rounded-xl border border-crypto-border shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-crypto-accent/10 text-crypto-accent rounded-full border border-crypto-accent/20 flex items-center justify-center">
+            <BarChart2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-400 font-medium">Rata-Rata Nilai</p>
+            <p className="text-2xl font-bold text-crypto-accent">{rataRataNilai}</p>
           </div>
         </div>
       </div>
@@ -180,8 +181,6 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
                 <th className="px-6 py-4 font-semibold print:border print:border-black print:py-2 print:px-2">NIS</th>
                 <th className="px-6 py-4 font-semibold print:border print:border-black print:py-2 print:px-2">Nama Siswa</th>
                 <th className="px-6 py-4 font-semibold print:border print:border-black print:py-2 print:px-2">Kelas</th>
-                <th className="px-6 py-4 font-semibold text-center print:border print:border-black print:py-2 print:px-2">Status</th>
-                <th className="px-6 py-4 font-semibold text-center print:hidden">Pelanggaran</th>
                 <th className="px-6 py-4 font-semibold text-center print:border print:border-black print:py-2 print:px-2">Nilai Akhir</th>
               </tr>
             </thead>
@@ -192,31 +191,13 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
                   <td className="px-6 py-4 text-sm text-gray-400 font-mono print:border print:border-black print:py-1 print:px-2">{p.nis}</td>
                   <td className="px-6 py-4 text-sm font-medium text-white print:border print:border-black print:py-1 print:px-2">{p.nama}</td>
                   <td className="px-6 py-4 text-sm text-gray-400 print:border print:border-black print:py-1 print:px-2">{p.kelas}</td>
-                  <td className="px-6 py-4 print:border print:border-black print:py-1 print:px-2">
-                    <div className="flex justify-center">
-                      {p.status === 'BELUM MULAI' && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 print:border-black print:bg-white">Belum Mulai</span>}
-                      {(p.status === 'MENGERJAKAN' || p.status === 'ONGOING') && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse print:border-black print:bg-white print:animate-none">Mengerjakan</span>}
-                      {(p.status === 'SELESAI' || p.status === 'FINISHED') && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-crypto-success/10 text-crypto-success border border-crypto-success/20 print:border-black print:bg-white">Selesai</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 print:hidden">
-                    <div className="flex justify-center">
-                      {p.pelanggaran > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-                          <AlertTriangle className="w-3 h-3" /> {p.pelanggaran}
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </div>
-                  </td>
                   <td className="px-6 py-4 text-center print:border print:border-black print:py-1 print:px-2">
-                    {(p.status === 'SELESAI' || p.status === 'FINISHED') ? (
-                      <span className="text-lg font-bold text-white print:text-base print:text-black">
-                        {p.nilaiAkhir !== null && p.nilaiAkhir !== undefined ? Math.round(p.nilaiAkhir) : '-'}
+                    {p.nilaiAkhir !== null && p.nilaiAkhir !== undefined ? (
+                      <span className="text-lg font-bold text-crypto-accent print:text-base print:text-black">
+                        {Math.round(p.nilaiAkhir)}
                       </span>
                     ) : (
-                      <span className="text-gray-500">-</span>
+                      <span className="text-gray-500 font-medium">-</span>
                     )}
                   </td>
                 </tr>
@@ -224,8 +205,8 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
               
               {peserta.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    Belum ada data peserta.
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    Belum ada data hasil ujian.
                   </td>
                 </tr>
               )}

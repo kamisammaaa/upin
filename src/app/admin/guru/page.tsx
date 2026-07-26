@@ -43,21 +43,7 @@ export default async function GuruDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-wide">Dasbor Guru</h2>
-          <p className="text-sm text-gray-400 mt-1">Selamat datang, kelola soal dan pantau nilai siswa Anda di sini.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link 
-            href="/admin/guru/bank-soal/tambah" 
-            className="flex items-center gap-2 bg-crypto-accent hover:bg-crypto-accent-hover text-white px-4 py-2 rounded-xl font-medium transition-all hover:neon-accent"
-          >
-            <PlusCircle className="w-4 h-4" /> Buat Soal
-          </Link>
-          <Link 
-            href="/admin/guru/jadwal/tambah" 
-            className="flex items-center gap-2 bg-crypto-card border border-crypto-border hover:bg-crypto-card-hover text-white px-4 py-2 rounded-xl font-medium transition-all hover:neon-accent"
-          >
-            <PlusCircle className="w-4 h-4" /> Buat Jadwal
-          </Link>
+          <p className="text-sm text-gray-400 mt-1">Selamat datang, kelola isi soal dan evaluasi hasil ujian siswa Anda di sini.</p>
         </div>
       </div>
 
@@ -86,7 +72,7 @@ export default async function GuruDashboard() {
               <BookOpen className="w-5 h-5 text-crypto-accent" />
               <h4 className="font-semibold text-white group-hover:text-crypto-accent transition-colors">Manajemen Bank Soal</h4>
             </div>
-            <p className="text-sm text-gray-400">Buat soal pilihan ganda, atur opsi, dan tentukan kunci jawaban mata pelajaran Anda.</p>
+            <p className="text-sm text-gray-400">Kelola butir soal, opsi, dan kunci jawaban pada paket soal yang ditugaskan kepada Anda.</p>
           </Link>
           
           <Link href="/admin/guru/nilai" className="p-4 border border-crypto-border rounded-xl bg-black/20 hover:bg-black/40 transition-all hover:neon-accent group">

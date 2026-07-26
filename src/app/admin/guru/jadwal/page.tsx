@@ -35,16 +35,9 @@ export default async function GuruJadwalPage() {
             Jadwal Ujian Saya
           </h2>
           <p className="mt-1 text-sm text-gray-400">
-            Daftar paket ujian yang telah Anda jadwalkan untuk siswa.
+            Daftar jadwal ujian yang dibuat oleh Admin untuk mata pelajaran Anda.
           </p>
         </div>
-        <Link 
-          href="/admin/guru/jadwal/tambah"
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-crypto-accent hover:bg-crypto-accent-hover rounded-xl transition-all hover:neon-accent"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Buat Jadwal Baru
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

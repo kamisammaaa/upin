@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/audit';
+import { submitExam } from './exam';
 
 // Memetakan status DB ke label UI
 function normalizeStatus(dbStatus: string | null | undefined): string {
@@ -82,39 +83,25 @@ export async function getAnalisisSoalData(jadwalId: number) {
 
   if (!jadwal) return null;
 
-  // Sesi ujian untuk menghitung total peserta yang sudah mengerjakan (minimal ada jawaban)
+  // Sesi ujian untuk menghitung total peserta yang sudah mengerjakan
   const totalPesertaSelesai = await prisma.sesiUjianSiswa.count({
     where: { jadwalId, status: 'FINISHED' }
   });
 
-  const soals = jadwal.bankSoal.soals.map(s => {
-    // Filter jawaban yang valid (terkait dengan jadwal ini)
-    const validJawabans = s.jawabans.filter(j => 
-      // Karena JawabanSiswa di database hanya merujuk pada SesiId, dan SesiId memiliki JadwalId, 
-      // kita perlu memastikan jawaban ini dari jadwal ini. Tapi karena schema relation Jawaban -> Sesi -> Jadwal, 
-      // kita tidak bisa langsung. Mending kita fetch Sesi terkait Jadwal ini lalu map id-nya.
-      true
-    );
-    return {
-      id: s.id,
-      pertanyaan: s.pertanyaan,
-      bobot: s.bobot
-    };
-  });
-  
-  // Karena filter rumit, mari kita ambil manual
   const sesiIds = (await prisma.sesiUjianSiswa.findMany({
     where: { jadwalId },
-    select: { id: true, status: true }
+    select: { id: true }
   })).map(s => s.id);
+
+  const totalPesertaAktif = sesiIds.length;
 
   const analisis = jadwal.bankSoal.soals.map(s => {
     const jawabans = s.jawabans.filter(j => sesiIds.includes(j.sesiId));
     const benar = jawabans.filter(j => j.isBenar).length;
     const salah = jawabans.filter(j => !j.isBenar && j.opsiDipilih).length;
-    const kosong = jawabans.filter(j => !j.opsiDipilih).length;
-    const total = jawabans.length;
-    
+    const kosong = Math.max(0, totalPesertaAktif - (benar + salah));
+    const total = totalPesertaAktif;
+
     return {
       id: s.id,
       pertanyaan: s.pertanyaan,
@@ -247,38 +234,10 @@ export async function getRuanganMonitorData(ruanganId: number, proctorId: number
 
 export async function forceSubmitSesi(sesiId: number) {
   try {
-    const sesi = await prisma.sesiUjianSiswa.findUnique({
-      where: { id: sesiId },
-      include: {
-        jawabans: {
-          include: { soal: true }
-        }
-      }
-    });
+    const res = await submitExam(sesiId);
+    if (!res.success) return { success: false, message: 'Sesi tidak ditemukan' };
 
-    if (!sesi) return { success: false, message: 'Sesi tidak ditemukan' };
-
-    let totalBobot = 0;
-    let skorDidapat = 0;
-
-    for (const jawaban of sesi.jawabans) {
-      totalBobot += jawaban.soal.bobot;
-      if (jawaban.isBenar) {
-        skorDidapat += jawaban.soal.bobot;
-      }
-    }
-
-    let nilaiAkhir = 0;
-    if (totalBobot > 0) {
-      nilaiAkhir = (skorDidapat / totalBobot) * 100;
-    }
-
-    await prisma.sesiUjianSiswa.update({
-      where: { id: sesiId },
-      data: { status: 'FINISHED', waktuSelesai: new Date(), nilaiAkhir }
-    });
-
-    await logAudit('PROKTOR', 'FORCE_SUBMIT', 'SesiUjian', `Force submit sesi ID ${sesiId}, nilai: ${nilaiAkhir.toFixed(1)}`);
+    await logAudit('PROKTOR', 'FORCE_SUBMIT', 'SesiUjian', `Force submit sesi ID ${sesiId}, nilai: ${res.nilaiAkhir ?? 0}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };

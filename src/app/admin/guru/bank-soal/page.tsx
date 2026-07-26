@@ -39,12 +39,9 @@ export default async function GuruBankSoalPage() {
             Bank Soal Saya
           </h2>
           <p className="mt-1 text-sm text-gray-400">
-            Daftar paket soal yang telah Anda buat dan kelola.
+            Daftar paket bank soal yang ditugaskan kepada Anda untuk diisi butir soalnya.
           </p>
         </div>
-        <Link href="/admin/guru/bank-soal/tambah" className="px-4 py-2 text-sm font-medium text-white bg-crypto-accent hover:bg-crypto-accent-hover rounded-xl transition-all hover:neon-accent">
-          + Buat Bank Soal
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
