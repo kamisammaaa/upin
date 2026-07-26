@@ -62,6 +62,10 @@ export async function upsertPengaturan(formData: FormData) {
     });
 
     revalidatePath('/admin/pengaturan');
+    revalidatePath('/');
+    revalidatePath('/admin');
+    revalidatePath('/siswa');
+    revalidatePath('/login');
     return { success: true };
   } catch (error: any) {
     console.error("Error in upsertPengaturan:", error);
