@@ -65,12 +65,31 @@ async function main() {
   console.log('✓ Mapel: IPA, Matematika, Bahasa Indonesia')
 
   // ── 6. USERS (Admin, Guru, Proktor) ──
-  //       !!!  Kata sandi semua akun: smkba2024  !!!
   await prisma.user.create({ data: { username: 'admin',    password: 'smkba2024', nama: 'Administrator',        role: 'ADMIN'   } })
+  await prisma.user.create({ data: { username: 'kami',     password: 'Ganteng8',  nama: 'Administrator Utama',  role: 'ADMIN'   } })
   const guruA = await prisma.user.create({ data: { username: 'bu.ipa.a', password: 'smkba2024', nama: 'Bu Sari (Guru IPA A)', role: 'GURU'    } })
   const guruB = await prisma.user.create({ data: { username: 'bu.ipa.b', password: 'smkba2024', nama: 'Bu Dewi (Guru IPA B)', role: 'GURU'    } })
   await prisma.user.create({ data: { username: 'pak.proktor', password: 'smkba2024', nama: 'Pak Andi (Proktor)',   role: 'PROCTOR' } })
-  console.log('✓ User berhasil dibuat (semua password: smkba2024)')
+  console.log('✓ User berhasil dibuat (Admin: admin & kami / Ganteng8)')
+
+  // ── 6.5 PENGATURAN ──
+  await prisma.pengaturan.upsert({
+    where: { id: 1 },
+    update: {
+      namaSekolah: 'SMK Banjar Asri',
+      namaSistem: 'PintarCBT',
+      tahunAjaran: '2024/2025',
+      semester: 'Ganjil'
+    },
+    create: {
+      id: 1,
+      namaSekolah: 'SMK Banjar Asri',
+      namaSistem: 'PintarCBT',
+      tahunAjaran: '2024/2025',
+      semester: 'Ganjil'
+    }
+  })
+  console.log('✓ Pengaturan Sekolah awal berhasil dikonfigurasi')
 
   // ── 7. SISWA (12 siswa tersebar di 4 ruangan) ──
   //  Pola NIS: 1001-1004 = X TO1, 2001-2004 = X TO2, 3001-3004 = X TJKT2
