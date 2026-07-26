@@ -50,12 +50,12 @@ export default async function UjianPage({ params }: { params: Promise<{ jadwalId
   }
 
   // Siapkan data untuk dikirim ke Client Component
-  const initialAnswers = sesi.jawabans.reduce((acc: Record<number, string>, j: any) => {
+  const initialAnswers = sesi.jawabans.reduce((acc: Record<number, string>, j: { soalId: number, opsiDipilih: string | null }) => {
     acc[j.soalId] = j.opsiDipilih || '';
     return acc;
   }, {} as Record<number, string>);
 
-  const soals = sesi.jadwal.bankSoal.soals.map((s: any) => ({
+  const soals = sesi.jadwal.bankSoal.soals.map((s: { id: number, pertanyaan: string, opsi: string }) => ({
     id: s.id,
     pertanyaan: s.pertanyaan,
     opsi: JSON.parse(s.opsi) as string[]
@@ -67,7 +67,10 @@ export default async function UjianPage({ params }: { params: Promise<{ jadwalId
       jadwal={sesi.jadwal}
       soals={soals}
       initialAnswers={initialAnswers}
+      initialPelanggaran={sesi.pelanggaran}
       siswaNama={sesi.siswa.nama}
+      acakSoal={sesi.jadwal.acakSoal}
+      acakOpsi={sesi.jadwal.acakOpsi}
     />
   );
 }

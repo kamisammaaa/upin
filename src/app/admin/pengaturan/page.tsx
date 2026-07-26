@@ -15,16 +15,20 @@ export default async function PengaturanPage() {
     pengaturan = {
       id: 1,
       namaSekolah: 'SMK Negeri 1 Upin',
+      namaSistem: 'PintarCBT',
       logoUrl: '',
       alamat: '',
       pengumuman: '',
       temaWarna: 'blue',
+      tahunAjaran: '2024/2025',
+      semester: 'Ganjil',
+      tampilkanNilaiSiswa: true,
       updatedAt: new Date(),
     };
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <div>
         <h2 className="text-2xl font-bold text-white flex items-center gap-2 tracking-wide">
           <Settings className="w-6 h-6 text-crypto-accent" />

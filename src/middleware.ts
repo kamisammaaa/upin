@@ -35,11 +35,12 @@ export function middleware(request: NextRequest) {
       const payloadString = Buffer.from(adminToken, 'base64').toString('utf-8');
       const payload = JSON.parse(payloadString);
 
-      // Jika dia Guru, pastikan dia hanya mengakses /admin/guru
       if (payload.role === 'GURU') {
         const isGuruRoute = pathname.startsWith('/admin/guru');
+        // Izin khusus untuk Guru agar bisa melihat Monitor Jadwal (bukan daftar jadwal keseluruhan)
+        const isMonitorJadwalRoute = /^\/admin\/jadwal\/\d+/.test(pathname);
         
-        if (!isGuruRoute && pathname !== '/admin/login') {
+        if (!isGuruRoute && !isMonitorJadwalRoute && pathname !== '/admin/login') {
           return NextResponse.redirect(new URL('/admin/guru', request.url));
         }
       }

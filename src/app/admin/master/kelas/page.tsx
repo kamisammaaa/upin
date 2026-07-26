@@ -20,10 +20,10 @@ export default async function DataKelasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2 tracking-wide">
-            <GraduationCap className="w-6 h-6 text-crypto-accent" />
+          <h2 className="text-3xl font-extrabold text-white flex items-center gap-3 tracking-wide">
+            <GraduationCap className="w-8 h-8 text-crypto-accent" />
             Data Master Kelas
           </h2>
           <p className="mt-1 text-sm text-gray-400">

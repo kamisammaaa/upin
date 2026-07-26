@@ -110,6 +110,8 @@ model JadwalUjian {
   bankSoal     BankSoal @relation(fields: [bankSoalId], references: [id])
   waktuMulai   DateTime
   waktuSelesai DateTime
+  acakSoal     Boolean  @default(false)
+  acakOpsi     Boolean  @default(false)
   kelas        Kelas[]  // Kelas yang diizinkan mengikuti jadwal ini
   sesiSiswa    SesiUjianSiswa[]
   createdAt    DateTime @default(now())
@@ -150,12 +152,24 @@ model JawabanSiswa {
 }
 
 model Pengaturan {
-  id           Int      @id @default(1)
-  namaSekolah  String   @default("Nama Sekolah")
-  namaSistem   String   @default("PintarCBT")
-  logoUrl      String?
-  alamat       String?
-  pengumuman   String?
-  temaWarna    String   @default("blue")
-  updatedAt    DateTime @updatedAt
+  id                  Int      @id @default(1)
+  namaSekolah         String   @default("Nama Sekolah")
+  namaSistem          String   @default("PintarCBT")
+  logoUrl             String?
+  alamat              String?
+  pengumuman          String?
+  temaWarna           String   @default("blue")
+  tahunAjaran         String   @default("2024/2025")
+  semester            String   @default("Ganjil")
+  tampilkanNilaiSiswa Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userNama  String
+  aksi      String
+  entitas   String
+  detail    String?
+  createdAt DateTime @default(now())
 }

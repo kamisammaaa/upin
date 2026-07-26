@@ -18,6 +18,8 @@ export async function createJadwalUjian(formData: FormData) {
     const bankSoalId = Number(formData.get('bankSoalId'));
     const waktuMulai = new Date(formData.get('waktuMulai') as string);
     const waktuSelesai = new Date(formData.get('waktuSelesai') as string);
+    const acakSoal = formData.get('acakSoal') === 'true';
+    const acakOpsi = formData.get('acakOpsi') === 'true';
     
     // Multi-select classes (can be multiple hidden inputs or array)
     const kelasIdsStr = formData.getAll('kelasIds') as string[];
@@ -37,6 +39,8 @@ export async function createJadwalUjian(formData: FormData) {
         bankSoalId,
         waktuMulai,
         waktuSelesai,
+        acakSoal,
+        acakOpsi,
         kelas: {
           connect: kelasIds.map(id => ({ id }))
         }

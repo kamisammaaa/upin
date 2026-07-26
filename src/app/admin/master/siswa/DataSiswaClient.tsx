@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Search, Plus, Upload, X } from 'lucide-react';
+import { Users, Search, Plus, Upload, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { importSiswa } from '@/app/actions/siswa';
-import { useRouter } from 'next/navigation';
+import { importSiswa, exportDataSiswa, deleteSiswaMassal, updateKelasMassal } from '@/app/actions/siswa';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 type Kelas = { id: number; nama: string };
 type Siswa = {
@@ -18,25 +18,132 @@ type Siswa = {
 
 export default function DataSiswaClient({ 
   siswas,
-  kelass
+  kelass,
+  currentPage = 1,
+  totalPages = 1,
+  totalSiswa = 0,
+  search = '',
+  kelasId = ''
 }: { 
   siswas: Siswa[];
   kelass: Kelas[];
+  currentPage?: number;
+  totalPages?: number;
+  totalSiswa?: number;
+  search?: string;
+  kelasId?: string;
 }) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterKelasId, setFilterKelasId] = useState<string>('');
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [searchQuery, setSearchQuery] = useState(search);
+  const [filterKelasId, setFilterKelasId] = useState<string>(kelasId);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredSiswas = siswas.filter(s => {
-    const matchSearch = s.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                       s.nis.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchKelas = filterKelasId === '' ? true : s.kelas.id.toString() === filterKelasId;
-    return matchSearch && matchKelas;
-  });
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkUpgrading, setIsBulkUpgrading] = useState(false);
+  const [bulkUpgradeKelasId, setBulkUpgradeKelasId] = useState<string>('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery === search) return; // avoid initial loop
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchQuery) params.set('search', searchQuery);
+      else params.delete('search');
+      params.set('page', '1');
+      router.push(`${pathname}?${params.toString()}`);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, pathname, router, searchParams, search]);
+
+  const handleKelasChange = (newKelasId: string) => {
+    setFilterKelasId(newKelasId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (newKelasId) params.set('kelasId', newKelasId);
+    else params.delete('kelasId');
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', newPage.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const data = await exportDataSiswa(searchQuery, filterKelasId);
+      if (data.length === 0) {
+        alert('Tidak ada data untuk diekspor.');
+        return;
+      }
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
+      XLSX.writeFile(wb, 'Export_Data_Siswa.xlsx');
+    } catch (err) {
+      alert('Gagal mengekspor data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === siswas.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(siswas.map(s => s.id));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Yakin ingin menghapus ${selectedIds.length} siswa yang dipilih?`)) return;
+    
+    setIsBulkDeleting(true);
+    const res = await deleteSiswaMassal(selectedIds);
+    if (res.error) {
+      alert(res.error);
+    } else {
+      alert(res.message);
+      setSelectedIds([]);
+      router.refresh();
+    }
+    setIsBulkDeleting(false);
+  };
+
+  const handleBulkUpgrade = async () => {
+    if (!bulkUpgradeKelasId) {
+      alert("Pilih kelas tujuan terlebih dahulu");
+      return;
+    }
+    if (!confirm(`Yakin ingin memindahkan ${selectedIds.length} siswa ke kelas baru?`)) return;
+    
+    setIsBulkUpgrading(true);
+    const res = await updateKelasMassal(selectedIds, parseInt(bulkUpgradeKelasId));
+    if (res.error) {
+      alert(res.error);
+    } else {
+      alert(res.message);
+      setSelectedIds([]);
+      setBulkUpgradeKelasId('');
+      router.refresh();
+    }
+    setIsBulkUpgrading(false);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,6 +239,14 @@ export default function DataSiswaClient({
         
         <div className="flex gap-2 w-full sm:w-auto">
           <button 
+            onClick={handleExport}
+            disabled={isExporting}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-crypto-accent bg-transparent border border-crypto-accent rounded-xl hover:bg-crypto-accent/10 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? 'Proses...' : 'Export Excel'}
+          </button>
+          <button 
             onClick={() => setIsImportModalOpen(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-crypto-accent bg-transparent border border-crypto-accent rounded-xl hover:bg-crypto-accent/10 transition-colors"
           >
@@ -162,7 +277,7 @@ export default function DataSiswaClient({
           </div>
           <select
             value={filterKelasId}
-            onChange={(e) => setFilterKelasId(e.target.value)}
+            onChange={(e) => handleKelasChange(e.target.value)}
             className="w-full sm:w-auto px-4 py-2 text-sm bg-black/40 border border-crypto-border rounded-xl focus:border-crypto-accent focus:ring-1 focus:ring-crypto-accent outline-none text-white transition-colors"
           >
             <option value="" className="bg-crypto-bg text-white">Semua Kelas</option>
@@ -176,6 +291,14 @@ export default function DataSiswaClient({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-black/40 border-b border-crypto-border text-sm">
+                <th className="px-4 py-3 w-12">
+                  <input 
+                    type="checkbox" 
+                    checked={siswas.length > 0 && selectedIds.length === siswas.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-crypto-accent focus:ring-crypto-accent focus:ring-offset-gray-900"
+                  />
+                </th>
                 <th className="px-4 py-3 font-semibold text-gray-400">No</th>
                 <th className="px-4 py-3 font-semibold text-gray-400">NIS</th>
                 <th className="px-4 py-3 font-semibold text-gray-400">Nama Lengkap</th>
@@ -185,15 +308,23 @@ export default function DataSiswaClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-crypto-border text-sm text-gray-300">
-              {filteredSiswas.length === 0 ? (
+              {siswas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     {searchQuery ? 'Data tidak ditemukan.' : 'Belum ada data siswa.'}
                   </td>
                 </tr>
               ) : (
-                filteredSiswas.map((s, index) => (
+                siswas.map((s, index) => (
                   <tr key={s.id} className="hover:bg-crypto-card-hover transition-colors">
+                    <td className="px-4 py-3">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(s.id)}
+                        onChange={() => toggleSelect(s.id)}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-crypto-accent focus:ring-crypto-accent focus:ring-offset-gray-900"
+                      />
+                    </td>
                     <td className="px-4 py-3">{index + 1}</td>
                     <td className="px-4 py-3 font-medium text-white">{s.nis}</td>
                     <td className="px-4 py-3">{s.nama}</td>
@@ -225,6 +356,33 @@ export default function DataSiswaClient({
             </tbody>
           </table>
         </div>
+        
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-crypto-border flex flex-col sm:flex-row items-center justify-between gap-4 bg-black/40">
+            <p className="text-sm text-gray-400">
+              Menampilkan <span className="font-medium text-white">{siswas.length}</span> dari <span className="font-medium text-white">{totalSiswa}</span> data
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="p-2 border border-crypto-border rounded-lg bg-crypto-bg text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-300 font-medium px-2">
+                Hal {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="p-2 border border-crypto-border rounded-lg bg-crypto-bg text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isImportModalOpen && (
@@ -280,6 +438,48 @@ export default function DataSiswaClient({
                 </label>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Bar for Bulk Actions */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-crypto-card border border-crypto-border shadow-neon p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 sm:gap-6 z-50 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2 text-white font-medium">
+            <span className="bg-crypto-accent/20 text-crypto-accent px-2 py-0.5 rounded-md">{selectedIds.length}</span>
+            <span className="hidden sm:inline">Siswa Dipilih</span>
+          </div>
+          
+          <div className="hidden sm:block h-6 w-px bg-crypto-border"></div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-crypto-border">
+              <select 
+                value={bulkUpgradeKelasId}
+                onChange={(e) => setBulkUpgradeKelasId(e.target.value)}
+                className="bg-transparent text-sm text-white outline-none px-2 py-1 max-w-[120px] sm:max-w-none"
+              >
+                <option value="" className="bg-crypto-bg">Pilih Kelas Baru...</option>
+                {kelass.map(k => (
+                  <option key={k.id} value={k.id} className="bg-crypto-bg">{k.nama}</option>
+                ))}
+              </select>
+              <button 
+                onClick={handleBulkUpgrade}
+                disabled={isBulkUpgrading || !bulkUpgradeKelasId}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isBulkUpgrading ? 'Proses...' : 'Pindah'}
+              </button>
+            </div>
+
+            <button 
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {isBulkDeleting ? 'Proses...' : 'Hapus'}
+            </button>
           </div>
         </div>
       )}

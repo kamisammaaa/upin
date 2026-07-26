@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getRuanganMonitorData, forceSubmitSesi, resetLoginSiswa, hapusUlangSiswa, refreshToken } from '@/app/actions/monitor';
-import { RefreshCcw, AlertTriangle, ArrowLeft, Printer, StopCircle, RotateCcw, Trash2, KeyRound } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { forceSubmitSesi, resetLoginSiswa, hapusUlangSiswa, refreshToken } from '@/app/actions/monitor';
+import { RefreshCcw, AlertTriangle, ArrowLeft, Printer, StopCircle, RotateCcw, Trash2, KeyRound, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MonitorProktorClient({ ruanganId, proctorId, initialData }: { ruanganId: number, proctorId: number, initialData: any }) {
@@ -10,26 +10,51 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const esRef = useRef<EventSource | null>(null);
 
-  // Auto Refresh setiap 10 detik
+  // SSE connection (replaces 10s polling)
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData();
-    }, 10000); // 10 detik
+    const connectSSE = () => {
+      const es = new EventSource(`/api/monitor/ruangan/${ruanganId}`);
+      esRef.current = es;
 
-    return () => clearInterval(interval);
-  }, [ruanganId, proctorId]);
+      es.onopen = () => setIsConnected(true);
+
+      es.onmessage = (event) => {
+        try {
+          const freshData = JSON.parse(event.data);
+          setData(freshData);
+          setLastUpdate(new Date());
+        } catch { /* ignore */ }
+      };
+
+      es.onerror = () => {
+        setIsConnected(false);
+        es.close();
+        setTimeout(connectSSE, 3000);
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      esRef.current?.close();
+      setIsConnected(false);
+    };
+  }, [ruanganId]);
 
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const freshData = await getRuanganMonitorData(ruanganId, proctorId);
+      const res = await fetch(`/api/monitor/ruangan/${ruanganId}`);
+      const freshData = await res.json();
       if (freshData) {
         setData(freshData);
         setLastUpdate(new Date());
       }
     } catch (error) {
-      console.error("Gagal refresh data", error);
+      console.error('Gagal refresh data', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -71,9 +96,17 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
     if (!confirm('Apakah Anda yakin ingin mengganti token ruangan ini? Siswa yang belum login harus menggunakan token yang baru.')) return;
     setIsRefreshingToken(true);
     const res = await refreshToken(ruanganId);
-    if (res.success) {
+    if (res.success && res.token) {
+      // Optimistic update state lokal langsung (0ms delay pada UI)
+      setData((prev: any) => ({
+        ...prev,
+        ruangan: {
+          ...prev.ruangan,
+          token: res.token
+        }
+      }));
       fetchData();
-    } else {
+    } else if (res.message) {
       alert(res.message);
     }
     setIsRefreshingToken(false);
@@ -110,9 +143,22 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="text-xs text-gray-400 hidden sm:block">
-            Terakhir update: {lastUpdate.toLocaleTimeString()}
-          </div>
+          {/* SSE Connection Badge */}
+          {isConnected ? (
+            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-crypto-success/10 text-crypto-success border border-crypto-success/20">
+              <Wifi className="w-3.5 h-3.5" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crypto-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-crypto-success"></span>
+              </span>
+              Live
+            </span>
+          ) : (
+            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 text-red-400 border border-red-500/20">
+              <WifiOff className="w-3.5 h-3.5" />
+              Terputus...
+            </span>
+          )}
           <button 
             onClick={fetchData}
             disabled={isRefreshing}
@@ -167,8 +213,8 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
               <p><strong>Token:</strong> {ruangan.token}</p>
             </div>
             <div className="text-right">
-              <p><strong>Tanggal:</strong> {new Date().toLocaleDateString('id-ID')}</p>
-              <p><strong>Waktu Cetak:</strong> {new Date().toLocaleTimeString('id-ID')}</p>
+              <p suppressHydrationWarning><strong>Tanggal:</strong> {new Date().toLocaleDateString('id-ID')}</p>
+              <p suppressHydrationWarning><strong>Waktu Cetak:</strong> {new Date().toLocaleTimeString('id-ID')}</p>
             </div>
           </div>
         </div>

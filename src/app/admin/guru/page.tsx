@@ -42,19 +42,19 @@ export default async function GuruDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Dasbor Guru</h2>
-          <p className="text-sm text-gray-500 mt-1">Selamat datang, kelola soal dan pantau nilai siswa Anda di sini.</p>
+          <h2 className="text-2xl font-bold text-white tracking-wide">Dasbor Guru</h2>
+          <p className="text-sm text-gray-400 mt-1">Selamat datang, kelola soal dan pantau nilai siswa Anda di sini.</p>
         </div>
         <div className="flex items-center gap-2">
           <Link 
             href="/admin/guru/bank-soal/tambah" 
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-crypto-accent hover:bg-crypto-accent-hover text-white px-4 py-2 rounded-xl font-medium transition-all hover:neon-accent"
           >
             <PlusCircle className="w-4 h-4" /> Buat Soal
           </Link>
           <Link 
             href="/admin/guru/jadwal/tambah" 
-            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition"
+            className="flex items-center gap-2 bg-crypto-card border border-crypto-border hover:bg-crypto-card-hover text-white px-4 py-2 rounded-xl font-medium transition-all hover:neon-accent"
           >
             <PlusCircle className="w-4 h-4" /> Buat Jadwal
           </Link>
@@ -63,38 +63,38 @@ export default async function GuruDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (
-          <div key={stat.name} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full ${stat.bg} flex items-center justify-center`}>
-              <stat.icon className={`w-6 h-6 ${stat.color}`} />
+          <div key={stat.name} className="bg-crypto-card p-6 rounded-2xl border border-crypto-border shadow-sm flex items-center gap-4 transition-all hover:-translate-y-1 hover:neon-accent group">
+            <div className={`w-12 h-12 rounded-xl bg-black/40 border border-crypto-border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              <stat.icon className={`w-6 h-6 ${stat.color.replace('text-', 'text-').replace('-600', '-400')}`} />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">{stat.name}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">{stat.name}</p>
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
       
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mt-8">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <PenTool className="w-5 h-5 text-gray-500" />
+      <div className="bg-crypto-card p-6 rounded-2xl border border-crypto-border shadow-sm mt-8">
+        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 tracking-wide">
+          <PenTool className="w-5 h-5 text-crypto-accent" />
           Akses Cepat
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/admin/guru/bank-soal" className="p-4 border border-gray-100 rounded-lg bg-gray-50 hover:bg-blue-50 transition group">
+          <Link href="/admin/guru/bank-soal" className="p-4 border border-crypto-border rounded-xl bg-black/20 hover:bg-black/40 transition-all hover:neon-accent group">
             <div className="flex items-center gap-3 mb-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-              <h4 className="font-semibold text-gray-900 group-hover:text-blue-700">Manajemen Bank Soal</h4>
+              <BookOpen className="w-5 h-5 text-crypto-accent" />
+              <h4 className="font-semibold text-white group-hover:text-crypto-accent transition-colors">Manajemen Bank Soal</h4>
             </div>
-            <p className="text-sm text-gray-500">Buat soal pilihan ganda, atur opsi, dan tentukan kunci jawaban mata pelajaran Anda.</p>
+            <p className="text-sm text-gray-400">Buat soal pilihan ganda, atur opsi, dan tentukan kunci jawaban mata pelajaran Anda.</p>
           </Link>
           
-          <Link href="/admin/guru/nilai" className="p-4 border border-gray-100 rounded-lg bg-gray-50 hover:bg-purple-50 transition group">
+          <Link href="/admin/guru/nilai" className="p-4 border border-crypto-border rounded-xl bg-black/20 hover:bg-black/40 transition-all hover:neon-accent group">
             <div className="flex items-center gap-3 mb-2">
-              <CheckCircle className="w-5 h-5 text-purple-600" />
-              <h4 className="font-semibold text-gray-900 group-hover:text-purple-700">Rekapitulasi Nilai</h4>
+              <CheckCircle className="w-5 h-5 text-crypto-accent" />
+              <h4 className="font-semibold text-white group-hover:text-crypto-accent transition-colors">Rekapitulasi Nilai</h4>
             </div>
-            <p className="text-sm text-gray-500">Lihat hasil pengerjaan siswa dan unduh laporan nilai (berdasarkan jadwal yang memakai soal Anda).</p>
+            <p className="text-sm text-gray-400">Lihat hasil pengerjaan siswa dan unduh laporan nilai (berdasarkan jadwal yang memakai soal Anda).</p>
           </Link>
         </div>
       </div>

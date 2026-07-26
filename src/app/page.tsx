@@ -33,20 +33,20 @@ export default async function LandingPage() {
             </h1>
           </div>
           
-          <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <Link 
               href="https://smkba.sch.id" 
               target="_blank"
-              className="px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white transition-colors flex items-center gap-2"
+              className="hidden md:flex px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white transition-colors items-center gap-2"
             >
               <Globe className="w-4 h-4" />
               Website Utama
             </Link>
             <Link 
               href="/admin/login"
-              className="px-4 py-2 text-sm font-semibold text-crypto-accent hover:text-crypto-accent-hover transition-colors"
+              className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-crypto-accent border border-crypto-accent/50 rounded-lg hover:bg-crypto-accent/10 transition-colors"
             >
-              Login Admin
+              Login Guru/Admin
             </Link>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Bell, ChevronRight } from 'lucide-react';
+import { Menu, Bell, ChevronRight, CalendarDays } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -66,7 +66,14 @@ export default function AdminHeader({
         </h1>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* Badge Sesi Akademik */}
+        {(pengaturan?.tahunAjaran || pengaturan?.semester) && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-crypto-accent/10 border border-crypto-accent/20 text-xs font-semibold text-crypto-accent">
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>T.A {pengaturan?.tahunAjaran || '2024/2025'} – {pengaturan?.semester || 'Ganjil'}</span>
+          </div>
+        )}
         <button className="relative p-2 text-gray-400 hover:text-white hover:bg-crypto-card rounded-full transition">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-crypto-success rounded-full border border-[#09090b] neon-success"></span>

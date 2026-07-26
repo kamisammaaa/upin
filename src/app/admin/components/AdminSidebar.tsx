@@ -11,7 +11,11 @@ import {
   LogOut,
   X,
   GraduationCap,
-  Eye
+  Eye,
+  LibraryBig,
+  Building2,
+  ClipboardList,
+  Shield
 } from 'lucide-react';
 import { logoutAdmin } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -34,10 +38,15 @@ export default function AdminSidebar({
   const adminMenus = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Data Kelas', href: '/admin/master/kelas', icon: GraduationCap },
+    { name: 'Data Mata Pelajaran', href: '/admin/master/mapel', icon: LibraryBig },
     { name: 'Data Siswa', href: '/admin/master/siswa', icon: Users },
+    { name: 'Data Guru', href: '/admin/master/guru', icon: Users },
+    { name: 'Data Ruangan', href: '/admin/master/ruangan', icon: Building2 },
+    { name: 'Data Proktor', href: '/admin/master/proktor', icon: Shield },
     { name: 'Bank Soal', href: '/admin/bank-soal', icon: BookOpen },
     { name: 'Jadwal Ujian', href: '/admin/jadwal', icon: CalendarDays },
     { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
+    { name: 'Audit Log', href: '/admin/audit', icon: ClipboardList },
   ];
 
   const guruMenus = [

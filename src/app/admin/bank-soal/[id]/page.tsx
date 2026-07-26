@@ -32,15 +32,15 @@ export default async function BankSoalDetailPage({ params }: { params: Promise<{
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Link href="/admin/bank-soal" className="hover:text-indigo-600 transition">Bank Soal</Link>
+            <Link href="/admin/bank-soal" className="hover:text-crypto-accent transition">Bank Soal</Link>
             <span>/</span>
-            <span className="text-gray-900 font-medium">Detail</span>
+            <span className="text-white font-medium">Detail</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-indigo-600" />
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-crypto-accent" />
             {bankSoal.judul}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-400">
             Mata Pelajaran: {bankSoal.mapel.nama} | Oleh: {bankSoal.guru.nama}
           </p>
         </div>

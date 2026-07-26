@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, use } from 'react';
 import { tambahSoalPilihanGanda } from '@/app/actions/soal';
+import RichTextEditor from '@/app/components/RichTextEditor';
 
 export default function TambahSoalPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -13,6 +14,11 @@ export default function TambahSoalPage({ params }: { params: Promise<{ id: strin
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [pertanyaan, setPertanyaan] = useState('');
+  const [opsi, setOpsi] = useState<{ [key: string]: string }>({
+    A: '', B: '', C: '', D: '', E: ''
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,18 +39,18 @@ export default function TambahSoalPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href={`/admin/guru/bank-soal/${bankSoalId}`} className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition">
+    <div className="w-full space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <Link href={`/admin/guru/bank-soal/${bankSoalId}`} className="inline-flex w-fit p-2 bg-crypto-card border border-crypto-border rounded-xl hover:bg-crypto-card-hover text-gray-400 hover:text-white transition">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Tambah Soal Baru</h2>
-          <p className="mt-1 text-sm text-gray-500">Buat butir soal pilihan ganda.</p>
+          <h2 className="text-2xl font-bold text-white">Tambah Soal Baru</h2>
+          <p className="mt-1 text-sm text-gray-400">Buat butir soal pilihan ganda.</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+      <div className="bg-crypto-card p-5 sm:p-8 rounded-2xl border border-crypto-border shadow-sm">
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
             {error}
@@ -53,42 +59,42 @@ export default function TambahSoalPage({ params }: { params: Promise<{ id: strin
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pertanyaan</label>
-            <textarea 
-              name="pertanyaan"
-              required
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white transition-colors"
-              placeholder="Tuliskan pertanyaan di sini..."
-            ></textarea>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Pertanyaan</label>
+            <input type="hidden" name="pertanyaan" value={pertanyaan} />
+            <RichTextEditor 
+              value={pertanyaan} 
+              onChange={setPertanyaan} 
+              placeholder="Tuliskan pertanyaan beserta gambar/rumus di sini..."
+            />
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 border-b pb-2">Pilihan Jawaban</h3>
+            <h3 className="text-sm font-medium text-gray-300 border-b border-crypto-border pb-2">Pilihan Jawaban</h3>
             
             {['A', 'B', 'C', 'D', 'E'].map((label) => (
-              <div key={label} className="flex gap-3">
-                <div className="flex-none w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center font-bold text-gray-600">
+              <div key={label} className="flex flex-col sm:flex-row gap-3 items-start">
+                <div className="flex-none w-10 h-10 rounded-xl bg-black/40 border border-crypto-border flex items-center justify-center font-bold text-gray-400 shadow-sm">
                   {label}
                 </div>
-                <input 
-                  type="text"
-                  name={`opsi${label}`}
-                  required={label === 'A' || label === 'B'} // Minimal 2 opsi
-                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white transition-colors"
-                  placeholder={`Opsi Jawaban ${label}...`}
-                />
+                <input type="hidden" name={`opsi${label}`} value={opsi[label]} />
+                <div className="flex-1">
+                  <RichTextEditor 
+                    value={opsi[label]}
+                    onChange={(val) => setOpsi(prev => ({ ...prev, [label]: val }))}
+                    placeholder={`Opsi Jawaban ${label}...`}
+                  />
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-crypto-border">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Kunci Jawaban</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Kunci Jawaban</label>
               <select 
                 name="kunciJawaban"
                 required
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                className="w-full px-4 py-2.5 rounded-lg border border-crypto-border focus:border-crypto-accent outline-none text-white bg-black/40"
               >
                 <option value="">-- Pilih Kunci Jawaban --</option>
                 <option value="A">A</option>
@@ -100,14 +106,14 @@ export default function TambahSoalPage({ params }: { params: Promise<{ id: strin
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bobot Nilai</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Bobot Nilai</label>
               <input 
                 type="number"
                 name="bobot"
                 defaultValue="1"
                 min="1"
                 required
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                className="w-full px-4 py-2.5 rounded-lg border border-crypto-border focus:border-crypto-accent outline-none text-white bg-black/40"
               />
             </div>
           </div>
@@ -115,14 +121,14 @@ export default function TambahSoalPage({ params }: { params: Promise<{ id: strin
           <div className="pt-6 flex justify-end gap-3">
             <Link 
               href={`/admin/guru/bank-soal/${bankSoalId}`}
-              className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition"
+              className="px-6 py-2.5 rounded-lg border border-crypto-border text-gray-400 font-medium hover:bg-crypto-card-hover hover:text-white transition"
             >
               Batal
             </Link>
             <button 
               type="submit"
               disabled={isLoading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-crypto-accent text-white font-medium hover:bg-crypto-accent-hover transition disabled:opacity-50 shadow-neon"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               Simpan Soal

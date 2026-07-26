@@ -16,23 +16,27 @@ export default function AdminLayoutClient({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-crypto-bg text-gray-100 font-sans">
-      <AdminSidebar 
-        user={user} 
-        pengaturan={pengaturan}
-        isMobileMenuOpen={isMobileMenuOpen} 
-        setIsMobileMenuOpen={setIsMobileMenuOpen} 
-      />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader 
-          nama={user.nama} 
-          role={user.role}
+    <div className="flex h-screen bg-crypto-bg text-gray-100 font-sans print:h-auto print:bg-white print:text-black print:block">
+      <div className="print:hidden">
+        <AdminSidebar 
+          user={user} 
           pengaturan={pengaturan}
+          isMobileMenuOpen={isMobileMenuOpen} 
           setIsMobileMenuOpen={setIsMobileMenuOpen} 
         />
+      </div>
 
-        <main className="flex-1 overflow-y-auto p-6 bg-crypto-bg">
+      <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible print:block">
+        <div className="print:hidden">
+          <AdminHeader 
+            nama={user.nama} 
+            role={user.role}
+            pengaturan={pengaturan}
+            setIsMobileMenuOpen={setIsMobileMenuOpen} 
+          />
+        </div>
+
+        <main className="flex-1 overflow-y-auto p-6 bg-crypto-bg print:bg-white print:p-0 print:overflow-visible print:block">
           {children}
         </main>
       </div>

@@ -3,11 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSoal } from '@/app/actions/bank-soal';
+import RichTextEditor from '@/app/components/RichTextEditor';
+import Link from 'next/link';
+import { ArrowLeft, PlusCircle } from 'lucide-react';
 
 export default function TambahSoalClient({ bankSoalId }: { bankSoalId: number }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [pertanyaan, setPertanyaan] = useState('');
+  const [opsi, setOpsi] = useState<{ [key: string]: string }>({
+    A: '', B: '', C: '', D: '', E: ''
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,123 +35,112 @@ export default function TambahSoalClient({ bankSoalId }: { bankSoalId: number })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-6">
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg font-medium border border-red-100">
-          {error}
-        </div>
-      )}
-
-      <div className="space-y-4">
+    <div className="w-full space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <Link 
+          href={`/admin/bank-soal/${bankSoalId}`} 
+          className="inline-flex w-fit p-2 border border-crypto-border rounded-xl bg-crypto-card text-gray-400 hover:text-white hover:bg-crypto-card-hover transition-all"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Pertanyaan</label>
-          <textarea
-            name="pertanyaan"
-            required
-            rows={4}
-            placeholder="Tuliskan pertanyaan di sini..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 resize-y"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Opsi A (Wajib)</label>
-            <input
-              name="opsiA"
-              type="text"
-              required
-              placeholder="Pilihan A"
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Opsi B (Wajib)</label>
-            <input
-              name="opsiB"
-              type="text"
-              required
-              placeholder="Pilihan B"
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Opsi C (Opsional)</label>
-            <input
-              name="opsiC"
-              type="text"
-              placeholder="Pilihan C"
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Opsi D (Opsional)</label>
-            <input
-              name="opsiD"
-              type="text"
-              placeholder="Pilihan D"
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Opsi E (Opsional)</label>
-            <input
-              name="opsiE"
-              type="text"
-              placeholder="Pilihan E"
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Kunci Jawaban</label>
-            <select 
-              name="kunciJawaban"
-              defaultValue=""
-              required
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 font-bold"
-            >
-              <option value="" disabled>Pilih Kunci Jawaban...</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-              <option value="E">E</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Bobot Nilai</label>
-            <input
-              name="bobot"
-              type="number"
-              min="1"
-              defaultValue="1"
-              required
-              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-            />
-          </div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <PlusCircle className="w-6 h-6 text-crypto-accent" />
+            Tambah Soal Baru
+          </h2>
+          <p className="mt-1 text-sm text-gray-400">
+            Menambahkan butir soal ke dalam bank soal ini.
+          </p>
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-        >
-          Batal
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition disabled:opacity-70"
-        >
-          {isLoading ? 'Menyimpan...' : 'Simpan Butir Soal'}
-        </button>
-      </div>
-    </form>
+      <form onSubmit={handleSubmit} className="bg-crypto-card p-5 sm:p-8 rounded-2xl border border-crypto-border space-y-6">
+        {error && (
+          <div className="bg-red-500/10 text-red-400 p-4 rounded-xl font-medium border border-red-500/20 shadow-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Pertanyaan</label>
+            <input type="hidden" name="pertanyaan" value={pertanyaan} />
+            <div className="bg-black/40 border border-crypto-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-crypto-accent focus-within:border-transparent transition-all">
+              <RichTextEditor 
+                value={pertanyaan} 
+                onChange={setPertanyaan} 
+                placeholder="Tuliskan pertanyaan beserta gambar/rumus di sini..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4 mt-6">
+            <h3 className="text-sm font-semibold text-gray-300 border-b border-crypto-border pb-2">Pilihan Jawaban</h3>
+            {['A', 'B', 'C', 'D', 'E'].map((label) => (
+              <div key={label} className="flex flex-col sm:flex-row gap-3 items-start">
+                <div className="flex-none w-10 h-10 rounded-xl bg-black/40 border border-crypto-border flex items-center justify-center font-bold text-crypto-accent shadow-sm">
+                  {label}
+                </div>
+                <input type="hidden" name={`opsi${label}`} value={opsi[label]} />
+                <div className="flex-1 w-full bg-black/40 border border-crypto-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-crypto-accent focus-within:border-transparent transition-all">
+                  <RichTextEditor 
+                    value={opsi[label]}
+                    onChange={(val) => setOpsi(prev => ({ ...prev, [label]: val }))}
+                    placeholder={`Opsi Jawaban ${label}...`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-crypto-border mt-8">
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Kunci Jawaban</label>
+              <select 
+                name="kunciJawaban"
+                defaultValue=""
+                required
+                className="w-full p-3 bg-black/40 border border-crypto-border rounded-xl focus:ring-2 focus:ring-crypto-accent focus:border-transparent text-white transition-all outline-none appearance-none font-bold"
+              >
+                <option value="" disabled className="text-gray-500 font-normal">Pilih Kunci Jawaban...</option>
+                <option value="A" className="bg-gray-900">A</option>
+                <option value="B" className="bg-gray-900">B</option>
+                <option value="C" className="bg-gray-900">C</option>
+                <option value="D" className="bg-gray-900">D</option>
+                <option value="E" className="bg-gray-900">E</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Bobot Nilai</label>
+              <input
+                name="bobot"
+                type="number"
+                min="1"
+                defaultValue="1"
+                required
+                className="w-full p-3 bg-black/40 border border-crypto-border rounded-xl focus:ring-2 focus:ring-crypto-accent focus:border-transparent text-white transition-all outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-6 border-t border-crypto-border mt-8">
+          <Link
+            href={`/admin/bank-soal/${bankSoalId}`}
+            className="px-5 py-2.5 text-sm font-medium text-gray-300 bg-crypto-card border border-crypto-border rounded-xl hover:bg-crypto-card-hover hover:text-white transition-all"
+          >
+            Batal
+          </Link>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-6 py-2.5 text-sm font-bold text-white bg-crypto-accent rounded-xl hover:bg-crypto-accent-hover transition-all hover:neon-accent disabled:opacity-70 shadow-neon hover:shadow-neon-accent"
+          >
+            {isLoading ? 'Menyimpan...' : 'Simpan Butir Soal'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

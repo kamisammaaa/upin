@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, FileQuestion, Plus, Trash2, Edit3, Settings } from 'lucide-react';
+import { BookOpen, FileQuestion, Plus, Trash2, Edit3, Settings, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { deleteBankSoal } from '@/app/actions/bank-soal';
 import { useState } from 'react';
@@ -68,21 +68,28 @@ export default function BankSoalListClient({ bankSoals }: { bankSoals: any[] }) 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-auto">
+            <div className="grid grid-cols-3 gap-2 mt-auto">
+              <Link 
+                href={`/admin/bank-soal/${bank.id}/preview`}
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-xl hover:bg-gray-700 transition-all"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Preview
+              </Link>
               <Link 
                 href={`/admin/bank-soal/${bank.id}`}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-crypto-accent/20 border border-crypto-accent/30 rounded-xl hover:bg-crypto-accent hover:text-white transition-all hover:neon-accent"
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-semibold text-white bg-crypto-accent/20 border border-crypto-accent/30 rounded-xl hover:bg-crypto-accent hover:text-white transition-all hover:neon-accent"
               >
                 <Settings className="w-3.5 h-3.5" />
-                Kelola Soal
+                Kelola
               </Link>
               <button
                 onClick={() => handleDelete(bank.id)}
                 disabled={loadingId === bank.id}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                {loadingId === bank.id ? 'Menghapus...' : 'Hapus'}
+                {loadingId === bank.id ? 'Hapus...' : 'Hapus'}
               </button>
             </div>
           </div>

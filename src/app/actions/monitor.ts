@@ -1,7 +1,8 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
+import { logAudit } from '@/lib/audit';
 
 // Memetakan status DB ke label UI
 function normalizeStatus(dbStatus: string | null | undefined): string {
@@ -17,7 +18,7 @@ export async function getJadwalMonitorData(jadwalId: number) {
   const jadwal = await prisma.jadwalUjian.findUnique({
     where: { id: jadwalId },
     include: {
-      bankSoal: { include: { mapel: true } },
+      bankSoal: { include: { mapel: true, _count: { select: { soals: true } } } },
       kelas: true
     }
   });
@@ -35,8 +36,13 @@ export async function getJadwalMonitorData(jadwalId: number) {
   // Ambil progres/sesi yang sudah ada
   const sesiUjian = await prisma.sesiUjianSiswa.findMany({
     where: { jadwalId },
-    include: { siswa: true }
+    include: { 
+      siswa: true,
+      _count: { select: { jawabans: true } }
+    }
   });
+
+  const totalSoal = jadwal.bankSoal._count?.soals ?? 0;
 
   // Gabungkan data
   const result = semuaSiswa.map(siswa => {
@@ -50,11 +56,77 @@ export async function getJadwalMonitorData(jadwalId: number) {
       pelanggaran: sesi ? sesi.pelanggaran : 0,
       waktuMulai: sesi?.waktuMulai,
       waktuSelesai: sesi?.waktuSelesai,
-      nilaiAkhir: sesi?.nilaiAkhir
+      nilaiAkhir: sesi?.nilaiAkhir,
+      sesiId: sesi?.id || null,
+      jumlahDijawab: sesi ? (sesi as any)._count?.jawabans ?? 0 : 0,
+      totalSoal: totalSoal
     };
   });
 
   return { jadwal, peserta: result };
+}
+export async function getAnalisisSoalData(jadwalId: number) {
+  noStore();
+  const jadwal = await prisma.jadwalUjian.findUnique({
+    where: { id: jadwalId },
+    include: {
+      bankSoal: {
+        include: {
+          soals: {
+            include: { jawabans: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!jadwal) return null;
+
+  // Sesi ujian untuk menghitung total peserta yang sudah mengerjakan (minimal ada jawaban)
+  const totalPesertaSelesai = await prisma.sesiUjianSiswa.count({
+    where: { jadwalId, status: 'FINISHED' }
+  });
+
+  const soals = jadwal.bankSoal.soals.map(s => {
+    // Filter jawaban yang valid (terkait dengan jadwal ini)
+    const validJawabans = s.jawabans.filter(j => 
+      // Karena JawabanSiswa di database hanya merujuk pada SesiId, dan SesiId memiliki JadwalId, 
+      // kita perlu memastikan jawaban ini dari jadwal ini. Tapi karena schema relation Jawaban -> Sesi -> Jadwal, 
+      // kita tidak bisa langsung. Mending kita fetch Sesi terkait Jadwal ini lalu map id-nya.
+      true
+    );
+    return {
+      id: s.id,
+      pertanyaan: s.pertanyaan,
+      bobot: s.bobot
+    };
+  });
+  
+  // Karena filter rumit, mari kita ambil manual
+  const sesiIds = (await prisma.sesiUjianSiswa.findMany({
+    where: { jadwalId },
+    select: { id: true, status: true }
+  })).map(s => s.id);
+
+  const analisis = jadwal.bankSoal.soals.map(s => {
+    const jawabans = s.jawabans.filter(j => sesiIds.includes(j.sesiId));
+    const benar = jawabans.filter(j => j.isBenar).length;
+    const salah = jawabans.filter(j => !j.isBenar && j.opsiDipilih).length;
+    const kosong = jawabans.filter(j => !j.opsiDipilih).length;
+    const total = jawabans.length;
+    
+    return {
+      id: s.id,
+      pertanyaan: s.pertanyaan,
+      benar,
+      salah,
+      kosong,
+      total,
+      persentase: total > 0 ? (benar / total) * 100 : 0
+    };
+  });
+
+  return { totalPesertaSelesai, analisis };
 }
 
 export async function getRuanganMonitorData(ruanganId: number, proctorId: number) {
@@ -203,13 +275,10 @@ export async function forceSubmitSesi(sesiId: number) {
 
     await prisma.sesiUjianSiswa.update({
       where: { id: sesiId },
-      data: {
-        status: 'FINISHED',
-        waktuSelesai: new Date(),
-        nilaiAkhir: nilaiAkhir
-      }
+      data: { status: 'FINISHED', waktuSelesai: new Date(), nilaiAkhir }
     });
 
+    await logAudit('PROKTOR', 'FORCE_SUBMIT', 'SesiUjian', `Force submit sesi ID ${sesiId}, nilai: ${nilaiAkhir.toFixed(1)}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -259,6 +328,9 @@ export async function refreshToken(ruanganId: number) {
       data: { token: newToken }
     });
     
+    revalidatePath('/admin/proktor');
+    revalidatePath(`/admin/proktor/monitor/${ruanganId}`);
+
     return { success: true, token: newToken };
   } catch (error: any) {
     return { success: false, message: error.message };

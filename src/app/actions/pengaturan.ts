@@ -12,6 +12,9 @@ export async function upsertPengaturan(formData: FormData) {
   const logoFile = formData.get('logoFile') as File | null;
   const alamat = formData.get('alamat') as string;
   const pengumuman = formData.get('pengumuman') as string;
+  const tahunAjaran = formData.get('tahunAjaran') as string;
+  const semester = formData.get('semester') as string;
+  const tampilkanNilaiSiswa = formData.get('tampilkanNilaiSiswa') === 'true';
   
   if (!namaSekolah) {
     return { error: 'Nama sekolah wajib diisi' };
@@ -41,6 +44,9 @@ export async function upsertPengaturan(formData: FormData) {
         logoUrl,
         alamat,
         pengumuman,
+        tahunAjaran: tahunAjaran || '2024/2025',
+        semester: semester || 'Ganjil',
+        tampilkanNilaiSiswa,
       },
       create: {
         id: 1,
@@ -49,6 +55,9 @@ export async function upsertPengaturan(formData: FormData) {
         logoUrl,
         alamat,
         pengumuman,
+        tahunAjaran: tahunAjaran || '2024/2025',
+        semester: semester || 'Ganjil',
+        tampilkanNilaiSiswa,
       }
     });
 
