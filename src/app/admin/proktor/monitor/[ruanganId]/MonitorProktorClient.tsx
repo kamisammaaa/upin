@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { forceSubmitSesi, resetLoginSiswa, hapusUlangSiswa, refreshToken } from '@/app/actions/monitor';
-import { RefreshCcw, AlertTriangle, ArrowLeft, Printer, StopCircle, RotateCcw, Trash2, KeyRound, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCcw, AlertTriangle, ArrowLeft, Printer, StopCircle, RotateCcw, Trash2, KeyRound, Wifi, WifiOff, Download } from 'lucide-react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 export default function MonitorProktorClient({ ruanganId, proctorId, initialData }: { ruanganId: number, proctorId: number, initialData: any }) {
   const [data, setData] = useState(initialData);
@@ -13,13 +14,18 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
   const [isConnected, setIsConnected] = useState(false);
   const esRef = useRef<EventSource | null>(null);
 
-  // SSE connection (replaces 10s polling)
+  // SSE connection with auto-reconnect on server-side stream recycling
   useEffect(() => {
+    let retryCount = 0;
+
     const connectSSE = () => {
       const es = new EventSource(`/api/monitor/ruangan/${ruanganId}`);
       esRef.current = es;
 
-      es.onopen = () => setIsConnected(true);
+      es.onopen = () => {
+        setIsConnected(true);
+        retryCount = 0; // Reset backoff on successful connection
+      };
 
       es.onmessage = (event) => {
         try {
@@ -29,10 +35,20 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
         } catch { /* ignore */ }
       };
 
+      // Server sends "reconnect" event when recycling the stream (every ~4 min)
+      // Reconnect immediately and silently — no disconnect flash
+      es.addEventListener('reconnect', () => {
+        es.close();
+        connectSSE();
+      });
+
       es.onerror = () => {
         setIsConnected(false);
         es.close();
-        setTimeout(connectSSE, 3000);
+        // Exponential backoff: 3s, 6s, 12s... capped at 30s
+        const delay = Math.min(3000 * Math.pow(2, retryCount), 30000);
+        retryCount++;
+        setTimeout(connectSSE, delay);
       };
     };
 
@@ -118,6 +134,24 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
   const sedangMengerjakan = peserta.filter((p: any) => p.status === 'MENGERJAKAN').length;
   const selesai = peserta.filter((p: any) => p.status === 'SELESAI').length;
 
+  const handleExportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(peserta.map((p: any, index: number) => ({
+      'No': index + 1,
+      'NIS': p.nis,
+      'Nama Siswa': p.nama,
+      'Kelas': p.kelas,
+      'Mata Pelajaran': p.mapel,
+      'Status': p.status,
+      'Progres': p.totalSoal > 0 ? `${p.jumlahDijawab}/${p.totalSoal} (${Math.round((p.jumlahDijawab / p.totalSoal) * 100)}%)` : '-',
+      'Pelanggaran (Kali)': p.pelanggaran,
+      'Nilai Akhir': p.nilaiAkhir !== null && p.nilaiAkhir !== undefined ? p.nilaiAkhir : '-'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Rekap Ruangan");
+    const safeRuangan = (ruangan?.nama || 'Ruangan').replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(wb, `Rekap_Ujian_${safeRuangan}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{__html: `
@@ -169,6 +203,13 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
           </button>
           
           <button 
+            onClick={handleExportExcel}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-xl text-sm font-bold text-green-400 hover:bg-green-500 hover:text-white transition-all shadow-md"
+          >
+            <Download className="w-4 h-4" /> Ekspor Excel
+          </button>
+
+          <button 
             onClick={() => window.print()}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-crypto-accent rounded-xl text-sm font-bold text-white hover:bg-crypto-accent-hover hover:neon-accent shadow-lg transition-all"
           >
@@ -205,7 +246,7 @@ export default function MonitorProktorClient({ ruanganId, proctorId, initialData
         {/* Kop Surat Cetak */}
         <div className="hidden print:block mb-8 text-center border-b-2 border-gray-800 pb-4">
           <h1 className="text-2xl font-bold uppercase">Berita Acara & Rekapitulasi Nilai</h1>
-          <h2 className="text-xl font-semibold">{pengaturan?.namaSistem || 'PintarCBT'} - {pengaturan?.namaSekolah || 'SMK Banjar Asri'}</h2>
+          <h2 className="text-xl font-semibold">{pengaturan?.namaSistem || 'UPIN'} - {pengaturan?.namaSekolah || 'SMK Banjar Asri'}</h2>
           <div className="mt-4 flex justify-between text-left text-sm">
             <div>
               <p><strong>Ruangan:</strong> {ruangan.nama}</p>

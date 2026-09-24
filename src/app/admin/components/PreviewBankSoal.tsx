@@ -2,6 +2,7 @@
 
 import { Printer, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { renderMathInHtml } from '@/app/utils/mathRenderer';
 
 interface PreviewBankSoalProps {
   bankSoal: any;
@@ -57,7 +58,7 @@ export default function PreviewBankSoal({ bankSoal, role }: PreviewBankSoalProps
                 <div className="flex-1 w-full max-w-full overflow-hidden">
                   <div 
                     className="prose prose-sm max-w-none text-black prose-img:max-h-64 prose-img:w-auto prose-p:my-1 mb-4"
-                    dangerouslySetInnerHTML={{ __html: soal.pertanyaan }}
+                    dangerouslySetInnerHTML={{ __html: renderMathInHtml(soal.pertanyaan) }}
                   />
                   
                   {/* Opsi Jawaban */}
@@ -73,7 +74,7 @@ export default function PreviewBankSoal({ bankSoal, role }: PreviewBankSoalProps
                           </span>
                           <div 
                             className={`flex-1 prose prose-sm max-w-none text-black prose-img:max-h-40 prose-img:w-auto prose-p:my-0 ${isKunci ? 'font-medium text-green-800 print:text-black' : ''}`}
-                            dangerouslySetInnerHTML={{ __html: opt }}
+                            dangerouslySetInnerHTML={{ __html: renderMathInHtml(opt) }}
                           />
                         </div>
                       );

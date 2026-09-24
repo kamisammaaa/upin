@@ -2,6 +2,7 @@ import { headers, cookies } from 'next/headers';
 import AdminLayoutClient from './components/AdminLayoutClient';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { decodeToken } from '@/lib/jwt';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers();
@@ -23,14 +24,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   let user = { nama: 'Pengguna', role: 'UNKNOWN' };
-  try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+  const payload = decodeToken(token);
+  if (payload) {
     user = {
       nama: payload.nama,
       role: payload.role
     };
-  } catch (e) {
-    // Abaikan jika token invalid
   }
 
   let pengaturan = null;
@@ -42,8 +41,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     // Abaikan error pengaturan
   }
 
+  const isMobileOpen = cookieStore.get('admin_sidebar_mobile')?.value === 'open';
+
   return (
-    <AdminLayoutClient user={user} pengaturan={pengaturan}>
+    <AdminLayoutClient user={user} pengaturan={pengaturan} initialMobileMenuOpen={isMobileOpen}>
       {children}
     </AdminLayoutClient>
   );

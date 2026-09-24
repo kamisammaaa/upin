@@ -3,20 +3,29 @@
 import { useState } from 'react';
 import { PlusCircle, FileText, Trash2, Upload, Pencil, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { deleteSoal } from '@/app/actions/bank-soal';
 import ImportSoalModal from '@/app/admin/components/ImportSoalModal';
 import PreviewSoalModal from '@/app/admin/components/PreviewSoalModal';
+import { renderMathInHtml } from '@/app/utils/mathRenderer';
 
 export default function GuruBankSoalDetailClient({ bankSoal, soals }: { bankSoal: any, soals: any[] }) {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [previewSoal, setPreviewSoal] = useState<any | null>(null);
+  const router = useRouter();
 
   const handleDelete = async (soalId: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus butir soal ini?')) {
       setLoadingId(soalId);
-      await deleteSoal(soalId, bankSoal.id);
+      const res = await deleteSoal(soalId, bankSoal.id);
       setLoadingId(null);
+      if (res.success) {
+        alert(res.message || 'Butir soal berhasil dihapus.');
+        router.refresh();
+      } else {
+        alert(res.error || 'Gagal menghapus butir soal.');
+      }
     }
   };
 
@@ -96,7 +105,7 @@ export default function GuruBankSoalDetailClient({ bankSoal, soals }: { bankSoal
               
               <div 
                 className="text-gray-300 font-medium mb-4 prose prose-sm prose-invert max-w-none prose-img:rounded-lg prose-img:max-h-48 prose-img:w-auto"
-                dangerouslySetInnerHTML={{ __html: soal.pertanyaan }}
+                dangerouslySetInnerHTML={{ __html: renderMathInHtml(soal.pertanyaan) }}
               />
 
               <div className="space-y-2 pl-4">
@@ -108,7 +117,7 @@ export default function GuruBankSoalDetailClient({ bankSoal, soals }: { bankSoal
                       <span className={`font-bold ${isCorrect ? 'text-crypto-success' : 'text-gray-500'}`}>{label}.</span>
                       <div 
                         className={`flex-1 prose prose-sm prose-invert max-w-none prose-p:my-0 prose-img:rounded-lg prose-img:max-h-32 prose-img:w-auto ${isCorrect ? 'text-crypto-success font-medium' : 'text-gray-400'}`}
-                        dangerouslySetInnerHTML={{ __html: opt }}
+                        dangerouslySetInnerHTML={{ __html: renderMathInHtml(opt) }}
                       />
                       {isCorrect && (
                         <span className="text-[10px] font-bold text-crypto-success bg-crypto-success/20 px-2 py-1 rounded-full uppercase border border-crypto-success/30">Kunci</span>

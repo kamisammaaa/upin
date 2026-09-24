@@ -77,14 +77,14 @@ async function main() {
     where: { id: 1 },
     update: {
       namaSekolah: 'SMK Banjar Asri',
-      namaSistem: 'PintarCBT',
+      namaSistem: 'UPIN',
       tahunAjaran: '2024/2025',
       semester: 'Ganjil'
     },
     create: {
       id: 1,
       namaSekolah: 'SMK Banjar Asri',
-      namaSistem: 'PintarCBT',
+      namaSistem: 'UPIN',
       tahunAjaran: '2024/2025',
       semester: 'Ganjil'
     }

@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Search, Plus, Upload, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Search, Plus, Upload, X, Download, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { importSiswa, exportDataSiswa, deleteSiswaMassal, updateKelasMassal } from '@/app/actions/siswa';
+import { importSiswa, exportDataSiswa, deleteSiswaMassal, updateKelasMassal, updateRuanganMassal } from '@/app/actions/siswa';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 type Kelas = { id: number; nama: string };
+type Ruangan = { id: number; nama: string };
 type Siswa = {
   id: number;
   nis: string;
@@ -19,25 +20,30 @@ type Siswa = {
 export default function DataSiswaClient({ 
   siswas,
   kelass,
+  ruangans = [],
   currentPage = 1,
   totalPages = 1,
   totalSiswa = 0,
   search = '',
-  kelasId = ''
+  kelasId = '',
+  ruanganId = ''
 }: { 
   siswas: Siswa[];
   kelass: Kelas[];
+  ruangans?: Ruangan[];
   currentPage?: number;
   totalPages?: number;
   totalSiswa?: number;
   search?: string;
   kelasId?: string;
+  ruanganId?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState(search);
   const [filterKelasId, setFilterKelasId] = useState<string>(kelasId);
+  const [filterRuanganId, setFilterRuanganId] = useState<string>(ruanganId);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState('');
@@ -48,6 +54,8 @@ export default function DataSiswaClient({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkUpgrading, setIsBulkUpgrading] = useState(false);
   const [bulkUpgradeKelasId, setBulkUpgradeKelasId] = useState<string>('');
+  const [isBulkRoomUpdating, setIsBulkRoomUpdating] = useState(false);
+  const [bulkUpgradeRuanganId, setBulkUpgradeRuanganId] = useState<string>('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,6 +78,15 @@ export default function DataSiswaClient({
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const handleRuanganChange = (newRuanganId: string) => {
+    setFilterRuanganId(newRuanganId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (newRuanganId) params.set('ruanganId', newRuanganId);
+    else params.delete('ruanganId');
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
     const params = new URLSearchParams(searchParams.toString());
@@ -80,7 +97,7 @@ export default function DataSiswaClient({
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const data = await exportDataSiswa(searchQuery, filterKelasId);
+      const data = await exportDataSiswa(searchQuery, filterKelasId, filterRuanganId);
       if (data.length === 0) {
         alert('Tidak ada data untuk diekspor.');
         return;
@@ -145,6 +162,30 @@ export default function DataSiswaClient({
     setIsBulkUpgrading(false);
   };
 
+  const handleBulkRuangan = async () => {
+    if (bulkUpgradeRuanganId === '') {
+      alert("Pilih ruangan tujuan terlebih dahulu");
+      return;
+    }
+    const targetRoomName = bulkUpgradeRuanganId === 'null' ? 'Kosongkan Ruangan' : ruangans.find(r => r.id === parseInt(bulkUpgradeRuanganId))?.nama;
+    if (!confirm(`Yakin ingin mengatur ruangan ${selectedIds.length} siswa ke: ${targetRoomName}?`)) return;
+
+    setIsBulkRoomUpdating(true);
+    const res = await updateRuanganMassal(
+      selectedIds, 
+      bulkUpgradeRuanganId === 'null' ? null : parseInt(bulkUpgradeRuanganId)
+    );
+    if (res.error) {
+      alert(res.error);
+    } else {
+      alert(res.message);
+      setSelectedIds([]);
+      setBulkUpgradeRuanganId('');
+      router.refresh();
+    }
+    setIsBulkRoomUpdating(false);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,6 +210,7 @@ export default function DataSiswaClient({
           const nama = String(row.Nama || row.nama || '').trim();
           const password = String(row.Password || row.password || '').trim();
           const kelasNama = String(row.Kelas || row.kelas || '').trim();
+          const ruangNama = String(row.Ruangan || row.ruangan || row.Ruang || row.ruang || '').trim();
 
           if (!nis || !nama || !password || !kelasNama) {
             setImportError(`Baris ${i + 2}: Data tidak lengkap (NIS, Nama, Password, Kelas wajib diisi)`);
@@ -176,18 +218,32 @@ export default function DataSiswaClient({
             return;
           }
 
-          const matchedKelas = kelass.find(k => k.nama.toLowerCase() === kelasNama.toLowerCase());
+          const normalizeName = (s: string) => (s || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+
+          const matchedKelas = kelass.find(k => normalizeName(k.nama) === normalizeName(kelasNama));
           if (!matchedKelas) {
             setImportError(`Baris ${i + 2}: Kelas "${kelasNama}" tidak ditemukan di database.`);
             setImportLoading(false);
             return;
           }
 
+          let ruanganId: number | null = null;
+          if (ruangNama && ruangNama !== '-' && ruangNama.toLowerCase() !== 'null') {
+            const matchedRuangan = ruangans.find(r => normalizeName(r.nama) === normalizeName(ruangNama));
+            if (!matchedRuangan) {
+              setImportError(`Baris ${i + 2}: Ruangan "${ruangNama}" tidak ditemukan di database. Pastikan ruangan telah ditambahkan pada Master Ruangan.`);
+              setImportLoading(false);
+              return;
+            }
+            ruanganId = matchedRuangan.id;
+          }
+
           validData.push({
             nis,
             nama,
             password,
-            kelasId: matchedKelas.id
+            kelasId: matchedKelas.id,
+            ruanganId
           });
         }
 
@@ -217,7 +273,13 @@ export default function DataSiswaClient({
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { NIS: '1001', Nama: 'Budi Santoso', Password: '123', Kelas: kelass[0]?.nama || 'X TJKT 1' }
+      { 
+        NIS: '1001', 
+        Nama: 'Budi Santoso', 
+        Password: '123', 
+        Kelas: kelass[0]?.nama || 'X TJKT 1',
+        Ruangan: ruangans[0]?.nama || 'Ruang 1'
+      }
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'TemplateSiswa');
@@ -237,7 +299,14 @@ export default function DataSiswaClient({
           </p>
         </div>
         
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+          <Link
+            href="/admin/kartu-ujian"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-md shadow-blue-500/20"
+          >
+            <Printer className="w-4 h-4" />
+            Cetak Kartu Ujian
+          </Link>
           <button 
             onClick={handleExport}
             disabled={isExporting}
@@ -283,6 +352,17 @@ export default function DataSiswaClient({
             <option value="" className="bg-crypto-bg text-white">Semua Kelas</option>
             {kelass.map(k => (
               <option key={k.id} value={k.id} className="bg-crypto-bg text-white">{k.nama}</option>
+            ))}
+          </select>
+          <select
+            value={filterRuanganId}
+            onChange={(e) => handleRuanganChange(e.target.value)}
+            className="w-full sm:w-auto px-4 py-2 text-sm bg-black/40 border border-crypto-border rounded-xl focus:border-crypto-accent focus:ring-1 focus:ring-crypto-accent outline-none text-white transition-colors"
+          >
+            <option value="" className="bg-crypto-bg text-white">Semua Ruangan</option>
+            <option value="null" className="bg-crypto-bg text-white">-- Belum Diatur --</option>
+            {ruangans.map(r => (
+              <option key={r.id} value={r.id.toString()} className="bg-crypto-bg text-white">{r.nama}</option>
             ))}
           </select>
         </div>
@@ -409,10 +489,11 @@ export default function DataSiswaClient({
               <div className="p-4 bg-crypto-accent/10 border border-crypto-accent/20 rounded-xl">
                 <p className="font-medium text-crypto-accent mb-2">Pastikan kolom header:</p>
                 <ul className="list-disc list-inside text-gray-300 space-y-1">
-                  <li><strong>NIS</strong> (Nomor Induk Siswa)</li>
-                  <li><strong>Nama</strong> (Nama Lengkap)</li>
-                  <li><strong>Password</strong> (Sandi Ujian)</li>
-                  <li><strong>Kelas</strong> (Persis seperti nama kelas, misal: X TJKT 1)</li>
+                  <li><strong>NIS</strong> (Nomor Induk Siswa - Wajib)</li>
+                  <li><strong>Nama</strong> (Nama Lengkap Siswa - Wajib)</li>
+                  <li><strong>Password</strong> (Sandi Ujian - Wajib)</li>
+                  <li><strong>Kelas</strong> (Persis seperti nama kelas, misal: {kelass[0]?.nama || 'X TJKT 1'} - Wajib)</li>
+                  <li><strong>Ruangan</strong> (Nama ruangan ujian, misal: {ruangans[0]?.nama || 'Ruang 1'} - Opsional)</li>
                 </ul>
               </div>
 
@@ -470,6 +551,27 @@ export default function DataSiswaClient({
                 className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isBulkUpgrading ? 'Proses...' : 'Pindah'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-crypto-border">
+              <select 
+                value={bulkUpgradeRuanganId}
+                onChange={(e) => setBulkUpgradeRuanganId(e.target.value)}
+                className="bg-transparent text-sm text-white outline-none px-2 py-1 max-w-[120px] sm:max-w-none"
+              >
+                <option value="" className="bg-crypto-bg">Atur Ruangan...</option>
+                <option value="null" className="bg-crypto-bg">-- Kosongkan Ruangan --</option>
+                {ruangans.map(r => (
+                  <option key={r.id} value={r.id} className="bg-crypto-bg">{r.nama}</option>
+                ))}
+              </select>
+              <button 
+                onClick={handleBulkRuangan}
+                disabled={isBulkRoomUpdating || !bulkUpgradeRuanganId}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isBulkRoomUpdating ? 'Proses...' : 'Atur'}
               </button>
             </div>
 

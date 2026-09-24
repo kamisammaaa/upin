@@ -29,7 +29,7 @@ export default async function LandingPage() {
               </div>
             )}
             <h1 className="text-xl md:text-2xl font-bold text-white tracking-widest neon-accent">
-              {pengaturan?.namaSistem || 'PintarCBT'}
+              {pengaturan?.namaSistem || 'UPIN'}
             </h1>
           </div>
           

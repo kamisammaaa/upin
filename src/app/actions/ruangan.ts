@@ -3,16 +3,23 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+function revalidateRuanganAll() {
+  revalidatePath('/admin/master/ruangan');
+  revalidatePath('/admin/master/siswa');
+  revalidatePath('/admin/proktor');
+  revalidatePath('/admin');
+  revalidatePath('/siswa');
+}
+
 export async function createRuangan(formData: FormData) {
-  const nama = formData.get('nama') as string;
+  const nama = (formData.get('nama') as string)?.trim();
   const kapasitas = parseInt(formData.get('kapasitas') as string) || 40;
 
   if (!nama) return { error: 'Nama ruangan wajib diisi' };
 
   try {
     await prisma.ruangan.create({ data: { nama, kapasitas } });
-    revalidatePath('/admin/master/ruangan');
-    revalidatePath('/admin');
+    revalidateRuanganAll();
     return { success: true };
   } catch (error: any) {
     if (error.code === 'P2002') return { error: 'Nama ruangan sudah digunakan' };
@@ -21,15 +28,14 @@ export async function createRuangan(formData: FormData) {
 }
 
 export async function updateRuangan(id: number, formData: FormData) {
-  const nama = formData.get('nama') as string;
+  const nama = (formData.get('nama') as string)?.trim();
   const kapasitas = parseInt(formData.get('kapasitas') as string) || 40;
 
   if (!nama) return { error: 'Nama ruangan wajib diisi' };
 
   try {
     await prisma.ruangan.update({ where: { id }, data: { nama, kapasitas } });
-    revalidatePath('/admin/master/ruangan');
-    revalidatePath('/admin');
+    revalidateRuanganAll();
     return { success: true };
   } catch (error: any) {
     if (error.code === 'P2002') return { error: 'Nama ruangan sudah digunakan' };
@@ -51,8 +57,7 @@ export async function deleteRuangan(id: number) {
     }
 
     await prisma.ruangan.delete({ where: { id } });
-    revalidatePath('/admin/master/ruangan');
-    revalidatePath('/admin');
+    revalidateRuanganAll();
     return { success: true };
   } catch {
     return { error: 'Gagal menghapus ruangan' };

@@ -9,7 +9,7 @@ export default async function BankSoalPage() {
       mapel: true,
       guru: true,
       _count: {
-        select: { soals: true }
+        select: { soals: true, jadwals: true }
       }
     },
     orderBy: {

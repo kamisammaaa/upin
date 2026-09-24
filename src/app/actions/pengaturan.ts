@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -12,6 +13,7 @@ export async function upsertPengaturan(formData: FormData) {
   const logoFile = formData.get('logoFile') as File | null;
   const alamat = formData.get('alamat') as string;
   const pengumuman = formData.get('pengumuman') as string;
+  const temaWarna = (formData.get('temaWarna') as string) || 'dark';
   const tahunAjaran = formData.get('tahunAjaran') as string;
   const semester = formData.get('semester') as string;
   const tampilkanNilaiSiswa = formData.get('tampilkanNilaiSiswa') === 'true';
@@ -44,6 +46,7 @@ export async function upsertPengaturan(formData: FormData) {
         logoUrl,
         alamat,
         pengumuman,
+        temaWarna,
         tahunAjaran: tahunAjaran || '2024/2025',
         semester: semester || 'Ganjil',
         tampilkanNilaiSiswa,
@@ -51,15 +54,19 @@ export async function upsertPengaturan(formData: FormData) {
       create: {
         id: 1,
         namaSekolah,
-        namaSistem: namaSistem || 'PintarCBT',
+        namaSistem: namaSistem || 'UPIN',
         logoUrl,
         alamat,
         pengumuman,
+        temaWarna,
         tahunAjaran: tahunAjaran || '2024/2025',
         semester: semester || 'Ganjil',
         tampilkanNilaiSiswa,
       }
     });
+
+    const cookieStore = await cookies();
+    cookieStore.set('theme', temaWarna, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
 
     revalidatePath('/admin/pengaturan');
     revalidatePath('/');

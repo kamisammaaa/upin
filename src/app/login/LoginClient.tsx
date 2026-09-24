@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { loginSiswa } from '../actions/auth';
-import { GraduationCap, LogIn, Smartphone } from 'lucide-react';
+import { GraduationCap, LogIn, Smartphone, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginClient({ pengaturan }: { pengaturan: any }) {
   const [state, formAction, isPending] = useActionState(loginSiswa, null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     // Tampilkan banner hanya jika BELUM dalam mode standalone (PWA)
@@ -30,7 +32,7 @@ export default function LoginClient({ pengaturan }: { pengaturan: any }) {
               </p>
               <ul className="text-gray-300 mt-1 space-y-0.5 list-disc list-inside">
                 <li><strong>Android:</strong> Ketuk menu ⋮ → "Tambahkan ke layar utama"</li>
-                <li><strong>iPhone:</strong> Ketuk ikon berbagi □↑ → "Tambahkan ke Layar Utama"</li>
+                <li><strong>iPhone:</strong> Buka di <strong>Safari</strong>, ketuk tombol Bagikan <strong>□↑</strong> → "Tambahkan ke Layar Utama"</li>
               </ul>
             </div>
           </div>
@@ -67,7 +69,7 @@ export default function LoginClient({ pengaturan }: { pengaturan: any }) {
                 pengaturan.namaSistem
               )
             ) : (
-              <>Pintar<span className="text-crypto-accent">CBT</span></>
+              <>UP<span className="text-crypto-accent">IN</span></>
             )}
           </h1>
           <p className="text-gray-400 mt-2 text-sm">
@@ -77,11 +79,34 @@ export default function LoginClient({ pengaturan }: { pengaturan: any }) {
         
         <div className="p-8 relative z-10">
           <form action={formAction} className="space-y-6">
-            {state?.error && (
+            {state?.isStaff ? (
+              <div className="p-4 bg-purple-500/15 border border-purple-500/40 rounded-2xl text-left space-y-3 shadow-lg animate-in zoom-in-95">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-500/25 text-purple-400 rounded-xl flex-shrink-0 mt-0.5">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white text-sm">
+                      Akun Guru / Tenaga Pendidik Terdeteksi
+                    </p>
+                    <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                      Halo <strong>{state.staffName}</strong>! Akun Anda terdaftar sebagai <strong>{state.staffRole}</strong>. Halaman ini khusus untuk login ujian siswa.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/admin/login"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-crypto-accent hover:bg-crypto-accent-hover text-white font-bold text-xs rounded-xl shadow-md transition-all hover:neon-accent"
+                >
+                  <span>Buka Portal Login Guru / Admin</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ) : state?.error ? (
               <div className="p-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
                 {state.error}
               </div>
-            )}
+            ) : null}
             
             <div>
               <label htmlFor="nis" className="block text-sm font-semibold text-gray-300 mb-1.5 tracking-wide">
@@ -101,14 +126,28 @@ export default function LoginClient({ pengaturan }: { pengaturan: any }) {
               <label htmlFor="password" className="block text-sm font-semibold text-gray-300 mb-1.5 tracking-wide">
                 Kata Sandi
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                placeholder="••••••••"
-                className="w-full px-4 py-3 bg-black/40 rounded-xl border border-crypto-border focus:ring-2 focus:ring-crypto-accent focus:border-transparent outline-none transition-all text-white placeholder-gray-600"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  required
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 pr-11 bg-black/40 rounded-xl border border-crypto-border focus:ring-2 focus:ring-crypto-accent focus:border-transparent outline-none transition-all text-white placeholder-gray-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
             
             <button
@@ -125,13 +164,19 @@ export default function LoginClient({ pengaturan }: { pengaturan: any }) {
             </button>
           </form>
           
-          <div className="mt-8 pt-6 border-t border-crypto-border text-center">
-            <p className="text-sm text-gray-400">
-              Lupa kata sandi? Silakan hubungi Proktor ruangan Anda.
+          <div className="mt-8 pt-6 border-t border-crypto-border text-center space-y-3">
+            <p className="text-xs text-gray-400">
+              Lupa kata sandi siswa? Silakan hubungi Proktor ruangan Anda.
             </p>
-            <a href="/admin" className="text-xs text-crypto-accent hover:text-white transition-colors mt-4 inline-block">
-              Masuk sebagai Admin/Guru &rarr;
-            </a>
+            <div className="pt-1">
+              <Link 
+                href="/admin/login" 
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-gray-300 bg-black/40 border border-crypto-border hover:bg-crypto-card-hover hover:text-white transition-all shadow-sm group"
+              >
+                <span>👨‍🏫 Masuk Portal Guru / Proktor / Admin</span>
+                <ArrowRight className="w-3.5 h-3.5 text-crypto-accent group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
           </div>
         </div>
         </div>

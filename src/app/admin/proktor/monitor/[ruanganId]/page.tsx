@@ -2,6 +2,9 @@ import MonitorProktorClient from './MonitorProktorClient';
 import { getRuanganMonitorData } from '@/app/actions/monitor';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { decodeToken } from '@/lib/jwt';
+
+export const dynamic = 'force-dynamic';
 
 export default async function MonitorProktorPage({ params }: { params: Promise<{ ruanganId: string }> }) {
   const resolvedParams = await params;
@@ -11,7 +14,8 @@ export default async function MonitorProktorPage({ params }: { params: Promise<{
 
   if (!token) redirect('/admin/login');
   
-  const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+  const payload = decodeToken(token);
+  if (!payload) redirect('/admin/login');
   
   // Data awal untuk client
   const initialData = await getRuanganMonitorData(ruanganId, payload.id);

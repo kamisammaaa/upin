@@ -1,19 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 
 export default function AdminLayoutClient({ 
   children, 
   user,
-  pengaturan
+  pengaturan,
+  initialMobileMenuOpen = false
 }: { 
   children: React.ReactNode, 
   user: { nama: string, role: string },
-  pengaturan?: any
+  pengaturan?: any,
+  initialMobileMenuOpen?: boolean
 }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpenState] = useState(initialMobileMenuOpen);
+
+  // Sync state dari cookie / sessionStorage jika ada update
+  useEffect(() => {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)admin_sidebar_mobile=([^;]+)/);
+      if (match) {
+        setIsMobileMenuOpenState(match[1] === 'open');
+      } else {
+        const saved = sessionStorage.getItem('admin_sidebar_mobile');
+        if (saved !== null) {
+          setIsMobileMenuOpenState(saved === 'true');
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const setIsMobileMenuOpen = (val: boolean) => {
+    setIsMobileMenuOpenState(val);
+    try {
+      document.cookie = `admin_sidebar_mobile=${val ? 'open' : 'closed'}; path=/; max-age=86400; SameSite=Lax`;
+      sessionStorage.setItem('admin_sidebar_mobile', String(val));
+    } catch (e) {}
+  };
 
   return (
     <div className="flex h-screen bg-crypto-bg text-gray-100 font-sans print:h-auto print:bg-white print:text-black print:block">

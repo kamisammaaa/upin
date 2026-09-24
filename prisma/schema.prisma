@@ -61,14 +61,19 @@ model Siswa {
   id        Int              @id @default(autoincrement())
   nis       String           @unique
   nama      String
-  password  String
-  kelasId   Int
+  password      String
+  passwordPlain String?
+  kelasId       Int
   kelas     Kelas            @relation(fields: [kelasId], references: [id])
   ruanganId Int?
   ruangan   Ruangan?         @relation(fields: [ruanganId], references: [id])
   sesiUjian SesiUjianSiswa[]
+  jadwalKhusus JadwalUjian[] @relation("PesertaKhususJadwal")
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
+
+  @@index([kelasId])
+  @@index([ruanganId])
 }
 
 model MataPelajaran {
@@ -90,6 +95,9 @@ model BankSoal {
   jadwals   JadwalUjian[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  @@index([guruId])
+  @@index([mapelId])
 }
 
 model Soal {
@@ -101,6 +109,8 @@ model Soal {
   kunciJawaban String   // The exact correct option string
   bobot        Int      @default(1)
   jawabans     JawabanSiswa[]
+
+  @@index([bankSoalId])
 }
 
 model JadwalUjian {
@@ -112,10 +122,15 @@ model JadwalUjian {
   waktuSelesai DateTime
   acakSoal     Boolean  @default(false)
   acakOpsi     Boolean  @default(false)
+  tipeUjian    String   @default("REGULER") // "REGULER" atau "SUSULAN"
   kelas        Kelas[]  // Kelas yang diizinkan mengikuti jadwal ini
+  siswaKhusus  Siswa[]  @relation("PesertaKhususJadwal")
   sesiSiswa    SesiUjianSiswa[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([bankSoalId])
+  @@index([waktuMulai, waktuSelesai])
 }
 
 enum StatusUjian {
@@ -137,6 +152,8 @@ model SesiUjianSiswa {
   jawabans     JawabanSiswa[]
 
   @@unique([siswaId, jadwalId])
+  @@index([jadwalId])
+  @@index([status])
 }
 
 model JawabanSiswa {
@@ -149,12 +166,13 @@ model JawabanSiswa {
   isBenar      Boolean         @default(false)
 
   @@unique([sesiId, soalId])
+  @@index([soalId])
 }
 
 model Pengaturan {
   id                  Int      @id @default(1)
   namaSekolah         String   @default("Nama Sekolah")
-  namaSistem          String   @default("PintarCBT")
+  namaSistem          String   @default("UPIN")
   logoUrl             String?
   alamat              String?
   pengumuman          String?

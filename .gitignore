@@ -53,3 +53,10 @@ public/uploads/
 .claude/
 .windsurf/
 skills-lock.json
+
+# Additional Ignores
+dev.db-shm
+dev.db-wal
+backups/
+.vscode/
+src/app/uploads/

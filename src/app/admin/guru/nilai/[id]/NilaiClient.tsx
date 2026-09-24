@@ -5,6 +5,7 @@ import { getAnalisisSoalData } from '@/app/actions/monitor';
 import { Users, CheckCircle2, AlertTriangle, Printer, ArrowLeft, Download, BarChart2, List } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { renderMathInHtml } from '@/app/utils/mathRenderer';
 
 type Peserta = {
   siswaId: number;
@@ -248,7 +249,7 @@ export default function NilaiClient({ initialData, jadwalId }: { initialData: an
                       <tr key={item.id} className="hover:bg-crypto-card-hover transition-colors print:hover:bg-white">
                         <td className="px-6 py-4 text-sm text-gray-400">{index + 1}</td>
                         <td className="px-6 py-4 text-sm text-gray-300 print:text-gray-700">
-                          <div className="font-medium" dangerouslySetInnerHTML={{ __html: snippet }} />
+                          <div className="font-medium" dangerouslySetInnerHTML={{ __html: renderMathInHtml(snippet) }} />
                         </td>
                         <td className="px-6 py-4 text-sm text-center font-bold text-green-400 print:text-green-600">{item.benar}</td>
                         <td className="px-6 py-4 text-sm text-center font-bold text-red-400 print:text-red-600">{item.salah}</td>

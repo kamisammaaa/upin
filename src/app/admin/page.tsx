@@ -50,7 +50,7 @@ export default async function AdminDashboard() {
       <div>
         <h2 className="text-2xl font-bold text-white tracking-wide">Ringkasan Sistem</h2>
         <p className="mt-1 text-sm text-gray-400">
-          {pengaturan?.namaSistem || 'PintarCBT'} &bull; T.A {pengaturan?.tahunAjaran || '2024/2025'} Semester {pengaturan?.semester || 'Ganjil'}
+          {pengaturan?.namaSistem || 'UPIN'} &bull; T.A {pengaturan?.tahunAjaran || '2024/2025'} Semester {pengaturan?.semester || 'Ganjil'}
         </p>
       </div>
 
@@ -108,9 +108,9 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Clock className="w-3.5 h-3.5" />
-                    {new Date(j.waktuMulai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(j.waktuMulai).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' })}
                     {' \u2013 '}
-                    {new Date(j.waktuSelesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(j.waktuSelesai).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' })}
                     <span className="ml-auto text-gray-600 truncate">{j.kelas.map((k: any) => k.nama).join(', ')}</span>
                   </div>
                 </Link>

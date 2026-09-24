@@ -3,19 +3,16 @@ import { Users, Download, Eye } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { decodeToken } from '@/lib/jwt';
 
 export default async function GuruNilaiPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get('admin_token')?.value;
   if (!token) redirect('/admin/login');
 
-  let guruId = 0;
-  try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-    guruId = payload.id;
-  } catch (e) {
-    redirect('/admin/login');
-  }
+  const payload = decodeToken(token);
+  if (!payload) redirect('/admin/login');
+  const guruId = payload.id;
 
   // Cari jadwal ujian yang menggunakan soal dari guru ini
   const jadwals = await prisma.jadwalUjian.findMany({

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { unstable_noStore as noStore } from 'next/cache';
+import { autoFinalizeExpiredSessions } from '@/app/actions/exam';
 
 function normalizeStatus(dbStatus: string | null | undefined): string {
   if (!dbStatus) return 'BELUM MULAI';
@@ -11,6 +13,7 @@ function normalizeStatus(dbStatus: string | null | undefined): string {
 
 async function fetchRuanganData(ruanganId: number) {
   noStore();
+  await autoFinalizeExpiredSessions();
   const now = new Date();
 
   const pengaturan = await prisma.pengaturan.findUnique({ where: { id: 1 } });
@@ -118,16 +121,31 @@ export async function GET(
     return new Response('Invalid ruanganId', { status: 400 });
   }
 
+  // Verifikasi autentikasi — hanya proktor/guru/admin yang sudah login
+  const cookieStore = await cookies();
+  const adminToken = cookieStore.get('admin_token')?.value;
+  if (!adminToken) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const encoder = new TextEncoder();
   let isClosed = false;
   let intervalHandle: ReturnType<typeof setInterval> | null = null;
+  let autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Auto-close SSE after 4 minutes to prevent Cloudflare Tunnel stream exhaustion.
+  // Client will receive a "reconnect" event and seamlessly reconnect.
+  const SSE_MAX_LIFETIME_MS = 4 * 60 * 1000;
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (data: unknown) => {
+      const send = (data: unknown, event?: string) => {
         if (isClosed) return;
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          let payload = '';
+          if (event) payload += `event: ${event}\n`;
+          payload += `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(payload));
         } catch {
           isClosed = true;
         }
@@ -144,11 +162,22 @@ export async function GET(
         }
         const fresh = await fetchRuanganData(ruanganId);
         if (fresh) send(fresh);
-      }, 5000);
+      }, 4000);
+
+      // Schedule auto-close to recycle the stream
+      autoCloseTimer = setTimeout(() => {
+        if (!isClosed) {
+          send({ reason: 'recycle' }, 'reconnect');
+          isClosed = true;
+          if (intervalHandle) clearInterval(intervalHandle);
+          try { controller.close(); } catch { /* already closed */ }
+        }
+      }, SSE_MAX_LIFETIME_MS);
     },
     cancel() {
       isClosed = true;
       if (intervalHandle) clearInterval(intervalHandle);
+      if (autoCloseTimer) clearTimeout(autoCloseTimer);
     },
   });
 

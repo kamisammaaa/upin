@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { renderMathInHtml } from '@/app/utils/mathRenderer';
 
 interface PreviewSoalModalProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export default function PreviewSoalModal({ isOpen, onClose, soal }: PreviewSoalM
             <div className="p-6">
               <div 
                 className="text-lg text-gray-200 mb-8 leading-relaxed prose prose-invert max-w-none prose-img:rounded-xl prose-img:border prose-img:border-gray-700"
-                dangerouslySetInnerHTML={{ __html: soal.pertanyaan }}
+                dangerouslySetInnerHTML={{ __html: renderMathInHtml(soal.pertanyaan) }}
               />
               
               <div className="space-y-3">
@@ -70,7 +71,7 @@ export default function PreviewSoalModal({ isOpen, onClose, soal }: PreviewSoalM
                          <span className="font-bold text-gray-400">{label}.</span>
                          <div 
                           className="prose prose-invert prose-sm max-w-none prose-p:my-0 prose-img:rounded-lg"
-                          dangerouslySetInnerHTML={{ __html: opt }}
+                          dangerouslySetInnerHTML={{ __html: renderMathInHtml(opt) }}
                          />
                       </div>
 

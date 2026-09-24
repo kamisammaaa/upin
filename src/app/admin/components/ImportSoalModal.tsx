@@ -32,6 +32,26 @@ export default function ImportSoalModal({ isOpen, onClose, bankSoalId }: ImportS
         'Opsi E': 'Megawati Soekarnoputri',
         'Kunci Jawaban (A/B/C/D/E)': 'A',
         Bobot: 1
+      },
+      {
+        Pertanyaan: 'Jika diketahui persamaan linear $2x + 6 = 16$, maka nilai dari $x$ adalah...',
+        'Opsi A': '$x = 5$',
+        'Opsi B': '$x = 10$',
+        'Opsi C': '$x = 4$',
+        'Opsi D': '$x = 3$',
+        'Opsi E': '$x = 2$',
+        'Kunci Jawaban (A/B/C/D/E)': 'A',
+        Bobot: 1
+      },
+      {
+        Pertanyaan: 'Akar-akar dari persamaan kuadrat $x^2 - 5x + 6 = 0$ dengan rumus $$\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$ adalah...',
+        'Opsi A': '$x = 2$ atau $x = 3$',
+        'Opsi B': '$x = -2$ atau $x = -3$',
+        'Opsi C': '$x = 1$ atau $x = 6$',
+        'Opsi D': '$x = -1$ atau $x = -6$',
+        'Opsi E': '$x = 0$ atau $x = 5$',
+        'Kunci Jawaban (A/B/C/D/E)': 'A',
+        Bobot: 1
       }
     ]);
     const wb = XLSX.utils.book_new();
@@ -73,8 +93,8 @@ export default function ImportSoalModal({ isOpen, onClose, bankSoalId }: ImportS
           throw new Error(`Data tidak lengkap pada baris ${index + 2} (Setelah Header)`);
         }
 
-        const validKunci = ['A', 'B', 'C', 'D', 'E'].includes(kunci.toString().toUpperCase()) 
-          ? kunci.toString().toUpperCase() 
+        const validKunci = ['A', 'B', 'C', 'D', 'E'].includes(kunci.toString().trim().toUpperCase()) 
+          ? kunci.toString().trim().toUpperCase() 
           : 'A';
 
         // Wrap dalam tag p karena rich text editor akan menampilkannya dengan benar
@@ -143,6 +163,16 @@ export default function ImportSoalModal({ isOpen, onClose, bankSoalId }: ImportS
               <Download className="w-4 h-4" />
               Download Template Excel
             </button>
+
+            <div className="p-3.5 bg-purple-50 text-purple-900 rounded-xl text-xs border border-purple-200 flex items-start gap-2.5">
+              <span className="font-serif font-bold text-sm leading-none mt-0.5 text-purple-700">∑</span>
+              <div className="space-y-1">
+                <span className="font-bold text-purple-950">Mendukung Rumus Matematika (LaTeX):</span>
+                <p className="text-purple-800 leading-relaxed">
+                  Ketik rumus dengan tanda <code className="bg-purple-100/80 px-1 py-0.5 rounded font-mono text-purple-900 border border-purple-200">$rumus$</code> di kolom Pertanyaan / Opsi. Contoh: <code className="bg-purple-100/80 px-1 py-0.5 rounded font-mono text-purple-900 border border-purple-200">{'$x^2 + \\sqrt{y}$'}</code> atau pecahan <code className="bg-purple-100/80 px-1 py-0.5 rounded font-mono text-purple-900 border border-purple-200">{'$\\frac{a}{b}$'}</code>.
+                </p>
+              </div>
+            </div>
 
             <div className="relative">
               <input

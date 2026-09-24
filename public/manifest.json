@@ -1,6 +1,6 @@
 {
-  "name": "PintarCBT - SMK Banjar Asri",
-  "short_name": "PintarCBT",
+  "name": "UPIN - SMK Banjar Asri",
+  "short_name": "UPIN",
   "description": "Sistem Ujian Berbasis Komputer (CBT) SMK Banjar Asri",
   "start_url": "/",
   "scope": "/",

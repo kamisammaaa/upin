@@ -3,13 +3,23 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { upsertPengaturan } from '@/app/actions/pengaturan';
-import { Save } from 'lucide-react';
+import { Save, Sun, Moon } from 'lucide-react';
 
 export default function PengaturanClient({ pengaturan }: { pengaturan: any }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState<string>(pengaturan.temaWarna || 'dark');
+
+  const handleThemeChange = (val: string) => {
+    setSelectedTheme(val);
+    document.documentElement.setAttribute('data-theme', val);
+    try {
+      localStorage.setItem('theme', val);
+      document.cookie = `theme=${val}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (e) {}
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,8 +60,8 @@ export default function PengaturanClient({ pengaturan }: { pengaturan: any }) {
             name="namaSistem"
             type="text"
             required
-            defaultValue={pengaturan.namaSistem || 'PintarCBT'}
-            placeholder="Misal: PintarCBT"
+            defaultValue={pengaturan.namaSistem || 'UPIN'}
+            placeholder="Misal: UPIN"
             className="w-full p-3 bg-black/40 border border-crypto-border rounded-xl focus:ring-2 focus:ring-crypto-accent focus:border-transparent text-white placeholder-gray-600 transition-all outline-none"
           />
         </div>
@@ -153,6 +163,68 @@ export default function PengaturanClient({ pengaturan }: { pengaturan: any }) {
                 <option value="Genap" className="bg-crypto-bg">Genap</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Tema Tampilan UI */}
+        <div className="pt-4 border-t border-crypto-border">
+          <h3 className="text-sm font-bold text-crypto-accent uppercase tracking-wider mb-4">Tema Tampilan Antarmuka (UI Theme)</h3>
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-3">Pilihan Tema Sistem</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label 
+                onClick={() => handleThemeChange('dark')}
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                  selectedTheme === 'dark' 
+                    ? 'bg-crypto-accent/15 border-crypto-accent text-white shadow-sm' 
+                    : 'bg-black/40 border-crypto-border text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <input 
+                  type="radio" 
+                  name="temaWarna" 
+                  value="dark" 
+                  checked={selectedTheme === 'dark'}
+                  onChange={() => {}}
+                  className="hidden" 
+                />
+                <div className="w-11 h-11 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-purple-400 shrink-0">
+                  <Moon className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-white">Mode Gelap (Dark Theme)</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Tampilan futuristik bernuansa gelap neon yang nyaman untuk mata</div>
+                </div>
+              </label>
+
+              <label 
+                onClick={() => handleThemeChange('light')}
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                  selectedTheme === 'light' 
+                    ? 'bg-crypto-accent/15 border-crypto-accent text-white shadow-sm' 
+                    : 'bg-black/40 border-crypto-border text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <input 
+                  type="radio" 
+                  name="temaWarna" 
+                  value="light" 
+                  checked={selectedTheme === 'light'}
+                  onChange={() => {}}
+                  className="hidden" 
+                />
+                <div className="w-11 h-11 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-600 shrink-0">
+                  <Sun className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-white">Mode Terang (Light Theme)</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Tampilan bersih, cerah, dan kontras tinggi untuk ruangan terang</div>
+                </div>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Menentukan tema bawaan sistem. Pengguna juga dapat mengubah tema kapan saja menggunakan tombol di navigasi header.
+            </p>
           </div>
         </div>
       </div>

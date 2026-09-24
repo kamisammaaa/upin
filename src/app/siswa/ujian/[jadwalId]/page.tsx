@@ -1,7 +1,10 @@
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { submitExam } from '@/app/actions/exam';
 import ExamClient from './ExamClient';
+
+export const dynamic = 'force-dynamic';
 
 export default async function UjianPage({ params }: { params: Promise<{ jadwalId: string }> }) {
   const resolvedParams = await params;
@@ -19,7 +22,10 @@ export default async function UjianPage({ params }: { params: Promise<{ jadwalId
       jadwal: {
         include: {
           bankSoal: {
-            include: { soals: true, mapel: true }
+            include: { 
+              soals: { orderBy: { id: 'asc' } }, 
+              mapel: true 
+            }
           }
         }
       },
@@ -29,6 +35,12 @@ export default async function UjianPage({ params }: { params: Promise<{ jadwalId
   });
 
   if (!sesi) redirect('/siswa');
+
+  const now = new Date();
+  if (sesi.status !== 'FINISHED' && now >= sesi.jadwal.waktuSelesai) {
+    await submitExam(sesi.id);
+    sesi.status = 'FINISHED';
+  }
   
   if (sesi.status === 'FINISHED') {
     return (
@@ -55,11 +67,19 @@ export default async function UjianPage({ params }: { params: Promise<{ jadwalId
     return acc;
   }, {} as Record<number, string>);
 
-  const soals = sesi.jadwal.bankSoal.soals.map((s: { id: number, pertanyaan: string, opsi: string }) => ({
-    id: s.id,
-    pertanyaan: s.pertanyaan,
-    opsi: JSON.parse(s.opsi) as string[]
-  }));
+  const soals = sesi.jadwal.bankSoal.soals.map((s: { id: number, pertanyaan: string, opsi: string }) => {
+    let opsiList: string[] = [];
+    try {
+      opsiList = typeof s.opsi === 'string' ? JSON.parse(s.opsi) : (Array.isArray(s.opsi) ? s.opsi : []);
+    } catch {
+      opsiList = [];
+    }
+    return {
+      id: s.id,
+      pertanyaan: s.pertanyaan,
+      opsi: opsiList
+    };
+  });
 
   return (
     <ExamClient 

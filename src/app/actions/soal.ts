@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { clearSoalCache } from './exam';
 
 export async function getSoalByBankSoalId(bankSoalId: number) {
   try {
@@ -77,6 +78,7 @@ export async function tambahSoalPilihanGanda(formData: FormData) {
       }
     });
 
+    await clearSoalCache();
     revalidatePath(`/admin/guru/bank-soal/${bankSoalId}`);
     return { success: true, message: 'Soal berhasil ditambahkan', id: newSoal.id };
   } catch (error: any) {
@@ -86,10 +88,13 @@ export async function tambahSoalPilihanGanda(formData: FormData) {
 
 export async function hapusSoal(soalId: number, bankSoalId: number) {
   try {
-    await prisma.soal.delete({
-      where: { id: soalId }
-    });
+    await prisma.$transaction([
+      prisma.jawabanSiswa.deleteMany({ where: { soalId } }),
+      prisma.soal.delete({ where: { id: soalId } }),
+    ]);
+    await clearSoalCache();
     revalidatePath(`/admin/guru/bank-soal/${bankSoalId}`);
+    revalidatePath(`/admin/bank-soal/${bankSoalId}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -117,6 +122,7 @@ export async function importBulkSoal(bankSoalId: number, dataSoal: any[]) {
       data: soalToInsert,
     });
 
+    await clearSoalCache();
     revalidatePath(`/admin/bank-soal/${bankSoalId}`);
     revalidatePath(`/admin/guru/bank-soal/${bankSoalId}`);
     return { success: true };
@@ -161,6 +167,7 @@ export async function updateSoalPilihanGanda(soalId: number, formData: FormData)
       }
     });
 
+    await clearSoalCache();
     revalidatePath(`/admin/guru/bank-soal/${bankSoalId}`);
     revalidatePath(`/admin/bank-soal/${bankSoalId}`);
     return { success: true, message: 'Soal berhasil diperbarui' };
@@ -168,3 +175,4 @@ export async function updateSoalPilihanGanda(soalId: number, formData: FormData)
     return { success: false, message: error.message };
   }
 }
+

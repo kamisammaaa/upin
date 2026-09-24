@@ -3,7 +3,7 @@
 import prisma from '@/lib/prisma';
 import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/audit';
-import { submitExam } from './exam';
+import { submitExam, autoFinalizeExpiredSessions } from './exam';
 
 // Memetakan status DB ke label UI
 function normalizeStatus(dbStatus: string | null | undefined): string {
@@ -15,24 +15,35 @@ function normalizeStatus(dbStatus: string | null | undefined): string {
 
 export async function getJadwalMonitorData(jadwalId: number) {
   noStore();
+  
+  // Otomatis finalisasi & nilai sesi siswa jika waktu jadwal ujian sudah lewat
+  await autoFinalizeExpiredSessions(jadwalId);
+
   // Ambil detail jadwal
   const jadwal = await prisma.jadwalUjian.findUnique({
     where: { id: jadwalId },
     include: {
       bankSoal: { include: { mapel: true, _count: { select: { soals: true } } } },
-      kelas: true
+      kelas: true,
+      siswaKhusus: { include: { kelas: true } }
     }
   });
 
   if (!jadwal) return null;
 
-  // Ambil data siswa yang seharusnya ikut jadwal ini (berdasarkan kelas)
-  const kelasIds = jadwal.kelas.map((k: any) => k.id);
-  const semuaSiswa = await prisma.siswa.findMany({
-    where: { kelasId: { in: kelasIds } },
-    include: { kelas: true },
-    orderBy: { nama: 'asc' }
-  });
+  // Jika jadwal bertipe SUSULAN dan memiliki siswa khusus, tampilkan siswa khusus tersebut
+  let semuaSiswa: any[] = [];
+  if (jadwal.tipeUjian === 'SUSULAN' && jadwal.siswaKhusus && jadwal.siswaKhusus.length > 0) {
+    semuaSiswa = [...jadwal.siswaKhusus].sort((a, b) => a.nama.localeCompare(b.nama));
+  } else {
+    // Ambil data siswa yang seharusnya ikut jadwal ini (berdasarkan kelas)
+    const kelasIds = jadwal.kelas.map((k: any) => k.id);
+    semuaSiswa = await prisma.siswa.findMany({
+      where: { kelasId: { in: kelasIds } },
+      include: { kelas: true },
+      orderBy: { nama: 'asc' }
+    });
+  }
 
   // Ambil progres/sesi yang sudah ada
   const sesiUjian = await prisma.sesiUjianSiswa.findMany({
@@ -118,6 +129,7 @@ export async function getAnalisisSoalData(jadwalId: number) {
 
 export async function getRuanganMonitorData(ruanganId: number, proctorId: number) {
   noStore();
+  await autoFinalizeExpiredSessions();
   const now = new Date();
   
   const pengaturan = await prisma.pengaturan.findUnique({ where: { id: 1 } });
@@ -244,7 +256,39 @@ export async function forceSubmitSesi(sesiId: number) {
   }
 }
 
-// Reset Login: siswa bisa masuk lagi, jawaban TETAP ada
+export async function forceSubmitAllActiveInJadwal(jadwalId: number) {
+  try {
+    const ongoingSessions = await prisma.sesiUjianSiswa.findMany({
+      where: {
+        jadwalId,
+        status: 'ONGOING'
+      },
+      select: { id: true }
+    });
+
+    if (ongoingSessions.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    for (const s of ongoingSessions) {
+      await submitExam(s.id);
+    }
+
+    await logAudit('PROKTOR', 'FORCE_SUBMIT_ALL', 'JadwalUjian', `Force submit all ${ongoingSessions.length} sesi for jadwal ID ${jadwalId}`);
+
+    try {
+      revalidatePath(`/admin/jadwal/${jadwalId}`);
+      revalidatePath('/admin/jadwal');
+      revalidatePath('/admin/guru/nilai');
+      revalidatePath(`/admin/guru/nilai/${jadwalId}`);
+    } catch {}
+
+    return { success: true, count: ongoingSessions.length };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 export async function resetLoginSiswa(sesiId: number) {
   try {
     await prisma.sesiUjianSiswa.update({
@@ -253,8 +297,13 @@ export async function resetLoginSiswa(sesiId: number) {
         status: 'ONGOING',
         waktuSelesai: null,
         nilaiAkhir: null,
+        pelanggaran: 0,
       }
     });
+    try {
+      revalidatePath('/siswa');
+      revalidatePath('/admin/proktor');
+    } catch {}
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };

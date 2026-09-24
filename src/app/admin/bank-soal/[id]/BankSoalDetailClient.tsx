@@ -3,20 +3,29 @@
 import { useState } from 'react';
 import { Plus, Trash2, FileQuestion, Upload, Pencil, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { deleteSoal } from '@/app/actions/bank-soal';
 import ImportSoalModal from '@/app/admin/components/ImportSoalModal';
 import PreviewSoalModal from '@/app/admin/components/PreviewSoalModal';
+import { renderMathInHtml } from '@/app/utils/mathRenderer';
 
 export default function BankSoalDetailClient({ bankSoal }: { bankSoal: any }) {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [previewSoal, setPreviewSoal] = useState<any | null>(null);
+  const router = useRouter();
 
   const handleDelete = async (soalId: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus butir soal ini?')) {
       setLoadingId(soalId);
-      await deleteSoal(soalId, bankSoal.id);
+      const res = await deleteSoal(soalId, bankSoal.id);
       setLoadingId(null);
+      if (res.success) {
+        alert(res.message || 'Butir soal berhasil dihapus.');
+        router.refresh();
+      } else {
+        alert(res.error || 'Gagal menghapus butir soal.');
+      }
     }
   };
 
@@ -76,7 +85,7 @@ export default function BankSoalDetailClient({ bankSoal }: { bankSoal: any }) {
                   <div>
                     <div 
                       className="text-white font-medium prose prose-invert prose-sm max-w-none prose-img:rounded-lg prose-img:max-h-48 prose-img:w-auto"
-                      dangerouslySetInnerHTML={{ __html: soal.pertanyaan }}
+                      dangerouslySetInnerHTML={{ __html: renderMathInHtml(soal.pertanyaan) }}
                     />
                     <div className="mt-2 text-xs font-semibold text-crypto-accent">
                       Bobot: {soal.bobot}
@@ -125,7 +134,7 @@ export default function BankSoalDetailClient({ bankSoal }: { bankSoal: any }) {
                       <span className={`font-bold ${isCorrect ? 'text-crypto-success' : 'text-gray-500'}`}>
                         {letter}.
                       </span>
-                      <div dangerouslySetInnerHTML={{ __html: op }} className="prose prose-sm prose-invert max-w-none prose-img:rounded-lg prose-img:max-h-32 prose-img:w-auto" />
+                      <div dangerouslySetInnerHTML={{ __html: renderMathInHtml(op) }} className="prose prose-sm prose-invert max-w-none prose-img:rounded-lg prose-img:max-h-32 prose-img:w-auto" />
                       {isCorrect && (
                         <span className="ml-auto text-xs font-bold text-crypto-success bg-crypto-success/20 px-2 py-1 rounded-md">
                           KUNCI JAWABAN

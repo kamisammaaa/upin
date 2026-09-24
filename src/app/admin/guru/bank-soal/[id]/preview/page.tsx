@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import PreviewBankSoal from '@/app/admin/components/PreviewBankSoal';
 import { cookies } from 'next/headers';
+import { decodeToken } from '@/lib/jwt';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,13 +12,9 @@ export default async function GuruPreviewBankSoalPage(props: { params: Promise<{
   const token = cookieStore.get('admin_token')?.value;
   if (!token) redirect('/admin/login');
 
-  let guruId = 0;
-  try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-    guruId = payload.id;
-  } catch (e) {
-    redirect('/admin/login');
-  }
+  const payload = decodeToken(token);
+  if (!payload) redirect('/admin/login');
+  const guruId = payload.id;
 
   const id = parseInt(params.id);
   if (isNaN(id)) notFound();

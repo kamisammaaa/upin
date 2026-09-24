@@ -13,6 +13,7 @@ export default async function DataSiswaPage({
   const page = typeof params.page === 'string' ? parseInt(params.page) || 1 : 1;
   const search = typeof params.search === 'string' ? params.search : '';
   const kelasId = typeof params.kelasId === 'string' ? params.kelasId : '';
+  const ruanganId = typeof params.ruanganId === 'string' ? params.ruanganId : '';
   
   const take = 50;
   const skip = (page - 1) * take;
@@ -26,10 +27,13 @@ export default async function DataSiswaPage({
     }),
     ...(kelasId && {
       kelasId: parseInt(kelasId)
+    }),
+    ...(ruanganId && {
+      ruanganId: ruanganId === 'null' ? null : parseInt(ruanganId)
     })
   };
 
-  const [siswas, total, kelass] = await Promise.all([
+  const [siswas, total, kelass, ruangans] = await Promise.all([
     prisma.siswa.findMany({
       where,
       include: {
@@ -45,6 +49,9 @@ export default async function DataSiswaPage({
     prisma.siswa.count({ where }),
     prisma.kelas.findMany({
       orderBy: { nama: 'asc' }
+    }),
+    prisma.ruangan.findMany({
+      orderBy: { nama: 'asc' }
     })
   ]);
 
@@ -54,11 +61,13 @@ export default async function DataSiswaPage({
     <DataSiswaClient 
       siswas={siswas} 
       kelass={kelass}
+      ruangans={ruangans}
       currentPage={page}
       totalPages={totalPages}
       totalSiswa={total}
       search={search}
       kelasId={kelasId}
+      ruanganId={ruanganId}
     />
   );
 }

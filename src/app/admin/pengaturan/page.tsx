@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import PengaturanClient from './PengaturanClient';
 import ResetSesiButton from './ResetSesiButton';
+import BackupDatabaseCard from './BackupDatabaseCard';
 import { Settings, ShieldAlert } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +15,8 @@ export default async function PengaturanPage() {
     // Fallback if not exists
     pengaturan = {
       id: 1,
-      namaSekolah: 'SMK Negeri 1 Upin',
-      namaSistem: 'PintarCBT',
+      namaSekolah: 'SMK Banjar Asri',
+      namaSistem: 'UPIN',
       logoUrl: '',
       alamat: '',
       pengumuman: '',
@@ -42,6 +43,8 @@ export default async function PengaturanPage() {
       <div className="bg-crypto-card rounded-2xl shadow-xl border border-crypto-border overflow-hidden">
         <PengaturanClient pengaturan={pengaturan} />
       </div>
+
+      <BackupDatabaseCard />
 
       <div className="bg-red-500/5 rounded-2xl shadow-xl border border-red-500/20 overflow-hidden p-6 mt-8">
         <h3 className="text-lg font-bold text-red-400 flex items-center gap-2 mb-2">

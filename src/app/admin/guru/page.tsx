@@ -2,6 +2,7 @@ import { BookOpen, Users, PenTool, CheckCircle, CalendarDays, PlusCircle } from 
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { decodeToken } from '@/lib/jwt';
 
 export default async function GuruDashboard() {
   const cookieStore = await cookies();
@@ -9,10 +10,10 @@ export default async function GuruDashboard() {
   let guruId = 0;
   
   if (token) {
-    try {
-      const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+    const payload = decodeToken(token);
+    if (payload) {
       guruId = payload.id;
-    } catch (e) {}
+    }
   }
 
   // Ambil statistik Guru

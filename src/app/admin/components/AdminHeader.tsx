@@ -3,6 +3,7 @@
 import { Menu, Bell, ChevronRight, CalendarDays } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import ThemeToggle from './ThemeToggle';
 
 export default function AdminHeader({ 
   nama, 
@@ -62,7 +63,7 @@ export default function AdminHeader({
         </div>
 
         <h1 className="text-lg font-bold text-white tracking-widest sm:hidden neon-accent">
-          {pengaturan?.namaSistem || 'PintarCBT'}
+          {pengaturan?.namaSistem || 'UPIN'}
         </h1>
       </div>
       
@@ -74,6 +75,9 @@ export default function AdminHeader({
             <span>T.A {pengaturan?.tahunAjaran || '2024/2025'} – {pengaturan?.semester || 'Ganjil'}</span>
           </div>
         )}
+        {/* Toggle Tema Terang / Gelap */}
+        <ThemeToggle initialTheme={pengaturan?.temaWarna} />
+
         <button className="relative p-2 text-gray-400 hover:text-white hover:bg-crypto-card rounded-full transition">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-crypto-success rounded-full border border-[#09090b] neon-success"></span>

@@ -15,7 +15,9 @@ import {
   LibraryBig,
   Building2,
   ClipboardList,
-  Shield
+  Shield,
+  IdCard,
+  BarChart3
 } from 'lucide-react';
 import { logoutAdmin } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
@@ -40,11 +42,13 @@ export default function AdminSidebar({
     { name: 'Data Kelas', href: '/admin/master/kelas', icon: GraduationCap },
     { name: 'Data Mata Pelajaran', href: '/admin/master/mapel', icon: LibraryBig },
     { name: 'Data Siswa', href: '/admin/master/siswa', icon: Users },
+    { name: 'Kartu Ujian', href: '/admin/kartu-ujian', icon: IdCard },
     { name: 'Data Guru', href: '/admin/master/guru', icon: Users },
     { name: 'Data Ruangan', href: '/admin/master/ruangan', icon: Building2 },
     { name: 'Data Proktor', href: '/admin/master/proktor', icon: Shield },
     { name: 'Bank Soal', href: '/admin/bank-soal', icon: BookOpen },
     { name: 'Jadwal Ujian', href: '/admin/jadwal', icon: CalendarDays },
+    { name: 'Hasil Ujian', href: '/admin/hasil-ujian', icon: BarChart3 },
     { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
     { name: 'Audit Log', href: '/admin/audit', icon: ClipboardList },
   ];
@@ -58,6 +62,7 @@ export default function AdminSidebar({
 
   const proktorMenus = [
     { name: 'Dashboard Proktor', href: '/admin/proktor', icon: Eye },
+    { name: 'Kartu Ujian', href: '/admin/kartu-ujian', icon: IdCard },
   ];
 
   let sidebarMenus = adminMenus;
@@ -65,6 +70,10 @@ export default function AdminSidebar({
   if (role === 'PROCTOR') sidebarMenus = proktorMenus;
 
   const handleLogout = async () => {
+    try {
+      document.cookie = 'admin_sidebar_mobile=closed; path=/; max-age=0; SameSite=Lax';
+      sessionStorage.removeItem('admin_sidebar_mobile');
+    } catch (e) {}
     await logoutAdmin();
     router.push('/admin/login');
   };
@@ -109,7 +118,7 @@ export default function AdminSidebar({
                   pengaturan.namaSistem
                 )
               ) : (
-                <>Pintar<span className="text-crypto-accent">CBT</span></>
+                <>UP<span className="text-crypto-accent">IN</span></>
               )}
             </span>
           </div>

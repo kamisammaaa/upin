@@ -3,6 +3,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { MonitorPlay, Users, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { decodeToken } from '@/lib/jwt';
+
+export const dynamic = 'force-dynamic';
 
 export default async function ProktorDashboard() {
   const cookieStore = await cookies();
@@ -10,7 +13,8 @@ export default async function ProktorDashboard() {
 
   if (!token) redirect('/admin/login');
 
-  const payload = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+  const payload = decodeToken(token);
+  if (!payload) redirect('/admin/login');
   const proctorId = payload.id;
 
   // Ambil semua ruangan beserta jumlah siswanya

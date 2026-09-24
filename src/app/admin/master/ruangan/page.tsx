@@ -7,7 +7,16 @@ export default async function DataRuanganPage() {
   const ruangans = await prisma.ruangan.findMany({
     orderBy: { nama: 'asc' },
     include: {
-      _count: { select: { siswas: true } }
+      _count: { select: { siswas: true } },
+      siswas: {
+        select: {
+          id: true,
+          nis: true,
+          nama: true,
+          kelas: { select: { nama: true } }
+        },
+        orderBy: { nama: 'asc' }
+      }
     }
   });
 

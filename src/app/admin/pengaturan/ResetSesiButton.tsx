@@ -9,14 +9,14 @@ export default function ResetSesiButton() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleReset = async () => {
-    if (confirm('PERINGATAN!\n\nApakah Anda YAKIN ingin mereset seluruh sesi ujian siswa yang sedang berlangsung? Ini akan membuat mereka harus login ulang dan memulai ulang sesi (jawaban yang sudah tersimpan mungkin aman, tapi akses ujian akan terhenti saat ini).')) {
+    if (confirm('PERINGATAN PENTING!\n\nApakah Anda YAKIN ingin mereset seluruh sesi ujian siswa?\n\nTindakan ini akan MENGHAPUS PERMANEN seluruh sesi ujian, jawaban, dan nilai akhir siswa dari simulasi/ujian sebelumnya agar sistem bersih untuk ujian berikutnya.\n\nData master siswa, kelas, guru, dan bank soal TIDAK akan terhapus.\n\nPastikan Anda SUDAH MENGUNDUH Backup Database (.db) atau Rekap Nilai Excel sebelum melanjutkan!')) {
       setIsLoading(true);
       const res = await resetSemuaSesiSiswa();
       
       if (res?.error) {
         alert(res.error);
       } else {
-        alert('Seluruh sesi siswa berhasil direset!');
+        alert('Seluruh sesi siswa berhasil direset! Siswa kini dapat memulai ujian dari awal.');
         router.refresh();
       }
       setIsLoading(false);

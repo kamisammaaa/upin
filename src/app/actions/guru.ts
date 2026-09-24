@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/audit';
+import { hashPassword } from '@/lib/hash';
 
 export async function createGuru(formData: FormData) {
   const username = formData.get('username') as string;
@@ -14,10 +15,11 @@ export async function createGuru(formData: FormData) {
   }
 
   try {
+    const hashedPassword = await hashPassword(password);
     await prisma.user.create({
       data: {
         username,
-        password,
+        password: hashedPassword,
         nama,
         role: 'GURU'
       }
@@ -46,7 +48,8 @@ export async function updateGuru(id: number, formData: FormData) {
   try {
     const data: any = { username, nama };
     if (password) {
-      data.password = password;
+      const isHashed = password.startsWith('$2a$') || password.startsWith('$2b$');
+      data.password = isHashed ? password : await hashPassword(password);
     }
 
     await prisma.user.update({
@@ -163,22 +166,32 @@ export async function exportDataGuru(search?: string) {
 
 export async function importGuru(data: { username: string; nama: string; password?: string }[]) {
   try {
-    let importedCount = 0;
-    
-    // We can't easily upsert with User because username is unique, and we might not have ID.
-    // Actually, prisma.user.upsert where: { username } works if username is unique.
+    const processedData = await Promise.all(
+      data.map(async (guru) => {
+        const rawPassword = guru.password || guru.username;
+        const isHashed = rawPassword.startsWith('$2a$') || rawPassword.startsWith('$2b$');
+        const hashedPassword = isHashed ? rawPassword : await hashPassword(rawPassword);
+        return {
+          username: guru.username,
+          nama: guru.nama,
+          hashedPassword,
+          hasPassword: !!guru.password
+        };
+      })
+    );
+
     await prisma.$transaction(
-      data.map((guru) => 
+      processedData.map((guru) => 
         prisma.user.upsert({
           where: { username: guru.username },
           update: {
             nama: guru.nama,
-            ...(guru.password ? { password: guru.password } : {})
+            ...(guru.hasPassword ? { password: guru.hashedPassword } : {})
           },
           create: {
             username: guru.username,
             nama: guru.nama,
-            password: guru.password || guru.username, // default password is username if not provided
+            password: guru.hashedPassword,
             role: 'GURU'
           }
         })

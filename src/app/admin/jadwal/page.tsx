@@ -11,10 +11,13 @@ export default async function JadwalUjianPage() {
       },
       kelas: {
         orderBy: { nama: 'asc' }
+      },
+      _count: {
+        select: { sesiSiswa: true }
       }
     },
     orderBy: {
-      waktuMulai: 'desc'
+      waktuMulai: 'asc'
     }
   });
 

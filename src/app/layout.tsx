@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +22,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PintarCBT",
+    title: "UPIN",
   },
   formatDetection: {
     telephone: false,
@@ -32,29 +34,47 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1e40af",
+  themeColor: "#7000FF",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false, // Cegah zoom saat ujian
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get('theme')?.value || 'dark';
+
   return (
     <html
       lang="id"
+      data-theme={theme}
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        {/* Anti-Flicker Theme Initializer */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const localTheme = localStorage.getItem('theme');
+                if (localTheme === 'light' || localTheme === 'dark') {
+                  document.documentElement.setAttribute('data-theme', localTheme);
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="PintarCBT" />
+        <meta name="application-name" content="UPIN" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="PintarCBT" />
+        <meta name="apple-mobile-web-app-title" content="UPIN" />
         <meta name="mobile-web-app-capable" content="yes" />
         {/* iOS Splash / Icon */}
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />

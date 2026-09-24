@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { logoutSiswa } from './auth';
 
 function cleanHtml(str: string): string {
@@ -57,13 +58,44 @@ function checkIsCorrect(soal: { opsi: string; kunciJawaban: string }, opsiDipili
   return false;
 }
 
+// Cache in-memory metadata soal (opsi & kunci) untuk memangkas ribuan query redundant ke SQLite saat ratusan siswa klik jawaban
+const soalCache = new Map<number, { opsi: string; kunciJawaban: string }>();
+
+async function getCachedSoal(soalId: number) {
+  let soal = soalCache.get(soalId);
+  if (!soal) {
+    const dbSoal = await prisma.soal.findUnique({
+      where: { id: soalId },
+      select: { opsi: true, kunciJawaban: true }
+    });
+    if (dbSoal) {
+      soal = dbSoal;
+      soalCache.set(soalId, soal);
+    }
+  }
+  return soal;
+}
+
+export async function clearSoalCache() {
+  soalCache.clear();
+}
+
 export async function saveAnswer(sesiId: number, soalId: number, opsiDipilih: string) {
-  const sesi = await prisma.sesiUjianSiswa.findUnique({ where: { id: sesiId } });
+  const sesi = await prisma.sesiUjianSiswa.findUnique({ 
+    where: { id: sesiId },
+    select: { status: true, jadwal: { select: { waktuSelesai: true } } }
+  });
   if (!sesi || sesi.status === 'FINISHED') {
     return { success: false, error: 'Sesi tidak valid' };
   }
 
-  const soal = await prisma.soal.findUnique({ where: { id: soalId } });
+  // Jika waktu jadwal sudah lewat saat mencoba simpan jawaban, finalisasi ujian
+  if (sesi.jadwal?.waktuSelesai && new Date() > sesi.jadwal.waktuSelesai) {
+    await submitExam(sesiId);
+    return { success: false, error: 'Waktu ujian telah berakhir' };
+  }
+
+  const soal = await getCachedSoal(soalId);
   if (!soal) return { success: false };
 
   const isBenar = checkIsCorrect(soal, opsiDipilih);
@@ -87,6 +119,45 @@ export async function saveAnswer(sesiId: number, soalId: number, opsiDipilih: st
   return { success: true };
 }
 
+// Batch save: simpan banyak jawaban sekaligus dalam 1 transaksi database (lebih cepat & atomic)
+export async function saveManyAnswers(sesiId: number, answers: Record<number, string>) {
+  const sesi = await prisma.sesiUjianSiswa.findUnique({ 
+    where: { id: sesiId },
+    select: { status: true, jadwal: { select: { waktuSelesai: true } } }
+  });
+  if (!sesi || sesi.status === 'FINISHED') {
+    return { success: false, error: 'Sesi tidak valid' };
+  }
+
+  // Jika waktu jadwal sudah lewat saat mencoba simpan jawaban, finalisasi ujian
+  if (sesi.jadwal?.waktuSelesai && new Date() > sesi.jadwal.waktuSelesai) {
+    await submitExam(sesiId);
+    return { success: false, error: 'Waktu ujian telah berakhir' };
+  }
+
+  const soalIds = Object.keys(answers).map(Number);
+  if (soalIds.length === 0) return { success: true };
+
+  const soals = await prisma.soal.findMany({ where: { id: { in: soalIds } } });
+  const soalMap = new Map(soals.map(s => [s.id, s]));
+
+  await prisma.$transaction(
+    soalIds.map(soalId => {
+      const opsiDipilih = answers[soalId];
+      const soal = soalMap.get(soalId);
+      const isBenar = soal ? checkIsCorrect(soal, opsiDipilih) : false;
+      return prisma.jawabanSiswa.upsert({
+        where: { sesiId_soalId: { sesiId, soalId } },
+        update: { opsiDipilih, isBenar },
+        create: { sesiId, soalId, opsiDipilih, isBenar }
+      });
+    })
+  );
+
+  return { success: true };
+}
+
+
 export async function submitExam(sesiId: number) {
   // Hitung nilai akhir
   const sesi = await prisma.sesiUjianSiswa.findUnique({
@@ -99,9 +170,15 @@ export async function submitExam(sesiId: number) {
 
   if (!sesi) return { success: false };
 
+  // Idempotent: jika sesi sudah FINISHED, kembalikan sukses tanpa proses ulang
+  if (sesi.status === 'FINISHED') {
+    return { success: true, nilaiAkhir: sesi.nilaiAkhir ?? 0 };
+  }
+
   // Evaluasi ulang kebenaran setiap jawaban untuk kepastian 100%
   let bobotDiperoleh = 0;
   for (const j of sesi.jawabans) {
+    if (!j.soal) continue;
     const isCorrect = checkIsCorrect(j.soal, j.opsiDipilih);
     if (j.isBenar !== isCorrect) {
       await prisma.jawabanSiswa.update({
@@ -110,23 +187,67 @@ export async function submitExam(sesiId: number) {
       });
     }
     if (isCorrect) {
-      bobotDiperoleh += j.soal.bobot;
+      bobotDiperoleh += (j.soal.bobot || 1);
     }
   }
 
-  const totalBobot = sesi.jadwal.bankSoal.soals.reduce((sum: number, s: any) => sum + s.bobot, 0);
+  const soals = sesi.jadwal?.bankSoal?.soals || [];
+  const totalBobot = soals.reduce((sum: number, s: any) => sum + (s.bobot || 1), 0);
   const nilaiAkhir = totalBobot > 0 ? Math.round((bobotDiperoleh / totalBobot) * 100) : 0;
+
+  const now = new Date();
+  const waktuSelesai = (sesi.jadwal?.waktuSelesai && now > sesi.jadwal.waktuSelesai)
+    ? sesi.jadwal.waktuSelesai
+    : now;
 
   await prisma.sesiUjianSiswa.update({
     where: { id: sesiId },
     data: {
       status: 'FINISHED',
-      waktuSelesai: new Date(),
+      waktuSelesai,
       nilaiAkhir
     }
   });
 
+  try {
+    revalidatePath('/siswa');
+    revalidatePath('/admin/proktor');
+    revalidatePath(`/admin/proktor/monitor/${sesi.jadwalId}`);
+    revalidatePath('/admin/guru/nilai');
+    revalidatePath(`/admin/guru/nilai/${sesi.jadwalId}`);
+    revalidatePath(`/admin/jadwal/${sesi.jadwalId}`);
+    revalidatePath('/admin/jadwal');
+  } catch {}
+
   return { success: true, nilaiAkhir };
+}
+
+// Otomatis finalisasi & hitung nilai semua sesi yang jadwal ujiannya sudah berakhir
+export async function autoFinalizeExpiredSessions(targetJadwalId?: number) {
+  try {
+    const now = new Date();
+    const expiredSessions = await prisma.sesiUjianSiswa.findMany({
+      where: {
+        status: 'ONGOING',
+        ...(targetJadwalId ? { jadwalId: targetJadwalId } : {}),
+        jadwal: {
+          waktuSelesai: { lte: now }
+        }
+      },
+      select: { id: true, jadwalId: true }
+    });
+
+    if (expiredSessions.length === 0) return { count: 0 };
+
+    for (const s of expiredSessions) {
+      await submitExam(s.id);
+    }
+
+    return { count: expiredSessions.length };
+  } catch (error) {
+    console.error('Gagal auto-finalize sesi ujian kedaluwarsa:', error);
+    return { count: 0, error };
+  }
 }
 
 export async function reportCheat(sesiId: number) {
@@ -150,16 +271,30 @@ export async function reportCheat(sesiId: number) {
 }
 
 export async function checkSessionStatus(sesiId: number) {
-  const sesi = await prisma.sesiUjianSiswa.findUnique({ where: { id: sesiId } });
-  if (!sesi) {
-    // Sesi dihapus oleh proktor (Hapus & Mulai Ulang) atau Admin (Reset Global)
-    return { valid: false, reason: 'DELETED' };
+  if (!sesiId || isNaN(sesiId)) return { valid: true };
+  try {
+    const sesi = await prisma.sesiUjianSiswa.findUnique({ 
+      where: { id: sesiId },
+      include: { jadwal: { select: { waktuSelesai: true } } }
+    });
+    if (!sesi) {
+      // Sesi dihapus oleh proktor (Hapus & Mulai Ulang) atau Admin (Reset Global)
+      return { valid: false, reason: 'DELETED' };
+    }
+    if (sesi.status === 'FINISHED') {
+      // Sesi diselesaikan paksa oleh proktor
+      return { valid: false, reason: 'FINISHED' };
+    }
+    // Jika waktu jadwal sudah berakhir, finalisasi otomatis dan arahkan keluar
+    if (sesi.jadwal?.waktuSelesai && new Date() >= sesi.jadwal.waktuSelesai) {
+      await submitExam(sesiId);
+      return { valid: false, reason: 'FINISHED' };
+    }
+    return { valid: true };
+  } catch (error) {
+    // Jika ada kendala koneksi sementara, jangan logout siswa
+    return { valid: true };
   }
-  if (sesi.status === 'FINISHED') {
-    // Sesi diselesaikan paksa oleh proktor
-    return { valid: false, reason: 'FINISHED' };
-  }
-  return { valid: true };
 }
 
 // Untuk melogout siswa secara paksa dari client component

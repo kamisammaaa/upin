@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/audit';
+import { hashPassword } from '@/lib/hash';
 
 export async function createProktor(formData: FormData) {
   const username = formData.get('username') as string;
@@ -14,10 +15,11 @@ export async function createProktor(formData: FormData) {
   }
 
   try {
+    const hashedPassword = await hashPassword(password);
     await prisma.user.create({
       data: {
         username,
-        password,
+        password: hashedPassword,
         nama,
         role: 'PROCTOR'
       }
@@ -46,7 +48,8 @@ export async function updateProktor(id: number, formData: FormData) {
   try {
     const data: any = { username, nama };
     if (password) {
-      data.password = password;
+      const isHashed = password.startsWith('$2a$') || password.startsWith('$2b$');
+      data.password = isHashed ? password : await hashPassword(password);
     }
 
     await prisma.user.update({
@@ -129,18 +132,32 @@ export async function exportDataProktor(search?: string) {
 
 export async function importProktor(data: { username: string; nama: string; password?: string }[]) {
   try {
+    const processedData = await Promise.all(
+      data.map(async (proktor) => {
+        const rawPassword = proktor.password || proktor.username;
+        const isHashed = rawPassword.startsWith('$2a$') || rawPassword.startsWith('$2b$');
+        const hashedPassword = isHashed ? rawPassword : await hashPassword(rawPassword);
+        return {
+          username: proktor.username,
+          nama: proktor.nama,
+          hashedPassword,
+          hasPassword: !!proktor.password
+        };
+      })
+    );
+
     await prisma.$transaction(
-      data.map((proktor) => 
+      processedData.map((proktor) => 
         prisma.user.upsert({
           where: { username: proktor.username },
           update: {
             nama: proktor.nama,
-            ...(proktor.password ? { password: proktor.password } : {})
+            ...(proktor.hasPassword ? { password: proktor.hashedPassword } : {})
           },
           create: {
             username: proktor.username,
             nama: proktor.nama,
-            password: proktor.password || proktor.username,
+            password: proktor.hashedPassword,
             role: 'PROCTOR'
           }
         })

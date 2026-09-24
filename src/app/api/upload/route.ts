@@ -12,12 +12,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'No file uploaded' }, { status: 400 });
     }
 
+    // Validasi tipe file: hanya gambar yang diizinkan
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'];
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, message: 'Format file tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.' },
+        { status: 400 }
+      );
+    }
+
+    // Validasi ukuran file: maks 10MB
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      return NextResponse.json(
+        { success: false, message: 'Ukuran file terlalu besar. Maksimal 10MB.' },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     // Bikin nama file unik
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const originalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '').split('.')[0]; // hapus ekstensi
+    const rawName = file.name ? file.name.replace(/[^a-zA-Z0-9.\-_]/g, '').split('.')[0] : 'pasted';
+    const originalName = rawName || 'pasted';
     const filename = `${uniqueSuffix}-${originalName}.webp`;
     
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'soal');
